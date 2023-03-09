@@ -39,4 +39,4 @@ ${KERNEL}:
 qemu: $(KERNEL) $(MONITOR)
 	./scripts/qemu.sh $(KERNEL) $(MONITOR)
 
-.PHONY: all api clean qemu ${MONITOR} ${KERNEL}
+.PHONY: all api clean qemu ${MONITOR} ${KERNEL} ${APP}
