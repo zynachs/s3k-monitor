@@ -13,4 +13,4 @@ The project's goal is to implement security features into [kth-step/s3k](https:/
 
 ## Navigation
 
-- [Project proposal](./DD2497/project-proposal.md)
+- [Project proposal](./project-proposal.md)
