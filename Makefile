@@ -16,16 +16,22 @@ clean:
 	git clean -fdX
 	${MAKE} -C ${dir ${KERNEL}} clean
 
-api:
-	mkdir -p common/s3k
-	cp ../s3k/api/s3k.h common/s3k.h
-	cp ../s3k/api/s3k.c common/s3k.c
+common/s3k.h: ../s3k/api/s3k.h
+	cp $< $@
+
+common/s3k-utils.c: ../s3k/api/s3k-utils.c
+	cp $< $@
+
+common/s3k-syscall.c: ../s3k/api/s3k-syscall.c
+	cp $< $@
+
+api: common/s3k.h common/s3k-utils.c common/s3k-syscall.c
 
 ${MONITOR}: api
-	${MAKE} -C ${@D} all
+	${MAKE} -C ${@D} ${@F}
 
 ${APP}: api
-	${MAKE} -C ${@D} all
+	${MAKE} -C ${@D} ${@F}
 
 ${KERNEL}:
 	${MAKE} -C ${@D} ${@F} CONFIG_H=${CONFIG_H}

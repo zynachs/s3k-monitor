@@ -1,0 +1,49 @@
+void func(void) {
+    char * ptr = (void *)0x10000000; 
+    *ptr = 0x45;
+    *ptr = 0x78;
+    *ptr = 0x65;
+    *ptr = 0x63;
+    *ptr = 0x75;
+    *ptr = 0x74;
+    *ptr = 0x69;
+    *ptr = 0x6e;
+    *ptr = 0x67;
+    *ptr = 0x20;
+    *ptr = 0x66;
+    *ptr = 0x72;
+    *ptr = 0x6f;
+    *ptr = 0x6d;
+    *ptr = 0x20;
+    *ptr = 0x64;
+    *ptr = 0x61;
+    *ptr = 0x74;
+    *ptr = 0x61;
+    *ptr = 0x21;
+    *ptr = 0x0a;
+
+    /*
+    *ptr = 0x57;
+    *ptr = 0x65;
+    *ptr = 0x20;
+    *ptr = 0x61;
+    *ptr = 0x72;
+    *ptr = 0x65;
+    *ptr = 0x20;
+    *ptr = 0x68;
+    *ptr = 0x61;
+    *ptr = 0x63;
+    *ptr = 0x6b;
+    *ptr = 0x69;
+    *ptr = 0x6e;
+    *ptr = 0x67;
+    *ptr = 0x20;
+    *ptr = 0x62;
+    *ptr = 0x61;
+    *ptr = 0x62;
+    *ptr = 0x79;
+    *ptr = 0x21;
+    *ptr = 0x0a;
+    */
+    return;
+}

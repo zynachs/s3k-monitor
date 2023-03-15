@@ -4,11 +4,16 @@ INC=-I../common
 vpath %.c ../common
 vpath %.S ../common
 
-CSRC=main.c s3k.c
+CSRC=main.c s3k-utils.c s3k-syscall.c
 ASSRC=start.S common.S
 LDS=./monitor.lds
 BASE_ADDR=0x80010000
 
-all: ${PROGRAM}.elf ${PROGRAM}.bin
+${BIN}:
+	${MAKE} -C ${@D} ${@F}
+
+obj/payload.o: ${BIN}
 
 include ../config.mk
+
+.PHONY: ${BIN}
