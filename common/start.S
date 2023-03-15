@@ -1,8 +1,8 @@
-.globl _start
+.globl _start # make _start available to linker
 .type _start, @function
 
-.section .init
-_start:
+.section .init # following code to go into section named .init. (apparently good practice if running within a OS)
+_start: # start of symbol _start, following code defines the symbol
 
 .option push
 .option norelax
@@ -16,14 +16,12 @@ _start:
 1:	sd	zero,(t0)
 	addi	t0,t0,8
 2:	bne	t0,t1,1b
-
-
-
+	
 	call	setup
 	lla	ra,loop
 	tail	loop
 
 .section .stack
 _stack:
-.fill 2048
+.fill 8192
 _stack_top:

@@ -2,42 +2,46 @@ OUTPUT_ARCH("riscv")
 
 ENTRY(_start)
 
+MEMORY {
+        MONITOR (rwaxi) : ORIGIN  = 0x80010000, LENGTH = 64K
+}
+
 SECTIONS {
-	. = 0x80010000;
-        .text : {
+        .text : ALIGN(4K) {
                 _text = .;
                 *(.init)
                 *(.text .text.*)
                 _etext = .;
-        }
+        } > MONITOR
 
-        .data : {
+        .data : ALIGN(4K) {
                 _data = .;
                 *(.data .data.*)
+                . = _data == . ? . + 1K : ALIGN(1K);
+                _rodata = .;
                 *(.rodata .rodata.*)
+                . = _rodata == . ? . + 1K : ALIGN(1K);
                 _sdata = .;
                 *(.sdata .sdata.*)
+                . = _sdata == . ? . + 1K : ALIGN(1K);
+                _srodata = .;
                 *(.srodata .srodata*)
                 _edata = .;
-        }
+        } > MONITOR
 
-        .bss : ALIGN(8) {
+        .bss : ALIGN(4K) {
                 _bss = .;
                 *(.sbss .sbss.*)
                 *(.bss .bss.*)
-		*(.stack .stack.*)
                 _ebss = ALIGN(8);
-        }
+        } > MONITOR
+
+        .stack : {
+                . = (ORIGIN(MONITOR) + LENGTH(MONITOR)) - 8K;
+                *(.stack .stack.*)
+        } > MONITOR
 
 	_end = .;
 
-	. = 0x80020000;
-	.noinit : {
-		_noinit = .;
-                *(.noinit .noinit.*)
-                _enoinit = .;
-	}
-
-        __global_pointer$ = MIN(_sdata + 0x800, MAX(_data + 0x800, _ebss - 0x800));
-
+        __global_pointer$ = _bss;
 }

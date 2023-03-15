@@ -36,7 +36,7 @@ ${KERNEL}:
 %.da: %.elf
 	${OBJDUMP} -d $< > $@
 
-qemu: $(KERNEL) $(MONITOR)
-	./scripts/qemu.sh $(KERNEL) $(MONITOR)
+qemu: $(KERNEL) $(MONITOR) $(APP)
+	./scripts/qemu.sh $(KERNEL) $(MONITOR) $(APP)
 
 .PHONY: all api clean qemu ${MONITOR} ${KERNEL} ${APP}
