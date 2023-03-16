@@ -2,9 +2,11 @@ OUTPUT_ARCH("riscv")
 
 ENTRY(_start)
 
+/* Definition of memory region */
 MEMORY {
         MONITOR (rwaxi) : ORIGIN  = 0x80010000, LENGTH = 64K
 }
+
 
 SECTIONS {
         .text : ALIGN(4K) {
@@ -37,7 +39,7 @@ SECTIONS {
         } > MONITOR
 
         .stack : {
-                . = (ORIGIN(MONITOR) + LENGTH(MONITOR)) - 8K;
+                . = (ORIGIN(MONITOR) + LENGTH(MONITOR)) - 2K;
                 *(.stack .stack.*)
         } > MONITOR
 

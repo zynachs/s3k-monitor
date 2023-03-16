@@ -23,5 +23,5 @@ _start: # start of symbol _start, following code defines the symbol
 
 .section .stack
 _stack:
-.fill 8192
+.fill 2048
 _stack_top:

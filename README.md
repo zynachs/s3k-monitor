@@ -14,3 +14,9 @@ The project's goal is to implement security features into [kth-step/s3k](https:/
 ## Navigation
 
 - [Project proposal](./project-proposal.md)
+- [Documentation](#documentation)
+
+## Documentation
+
+### Memory Layout
+

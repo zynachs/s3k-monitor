@@ -7,8 +7,13 @@ vpath %.S ../common
 CSRC=main.c s3k-utils.c s3k-syscall.c
 ASSRC=start.S common.S
 LDS=./app.lds
-BASE_ADDR=0x80010000
+BASE_ADDR=0x80020000
 
-all: ${PROGRAM}.elf ${PROGRAM}.bin
+${BIN}:
+	${MAKE} -C ${@D} ${@F}
+
+obj/payload.o: ${BIN}
 
 include ../config.mk
+
+.PHONY: ${BIN}

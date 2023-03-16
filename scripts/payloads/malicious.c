@@ -1,5 +1,8 @@
-void func(void) {
+void mal_putchar(void) {
+    /* Pointer to memory address of UART output, equivalent to putchar to stdout */
     char * ptr = (void *)0x10000000; 
+
+    /* Translates to the string "Executing from data!" */
     *ptr = 0x45;
     *ptr = 0x78;
     *ptr = 0x65;
@@ -22,28 +25,5 @@ void func(void) {
     *ptr = 0x21;
     *ptr = 0x0a;
 
-    /*
-    *ptr = 0x57;
-    *ptr = 0x65;
-    *ptr = 0x20;
-    *ptr = 0x61;
-    *ptr = 0x72;
-    *ptr = 0x65;
-    *ptr = 0x20;
-    *ptr = 0x68;
-    *ptr = 0x61;
-    *ptr = 0x63;
-    *ptr = 0x6b;
-    *ptr = 0x69;
-    *ptr = 0x6e;
-    *ptr = 0x67;
-    *ptr = 0x20;
-    *ptr = 0x62;
-    *ptr = 0x61;
-    *ptr = 0x62;
-    *ptr = 0x79;
-    *ptr = 0x21;
-    *ptr = 0x0a;
-    */
     return;
 }

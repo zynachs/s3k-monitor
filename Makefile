@@ -9,6 +9,7 @@ MONITOR=monitor/monitor.elf
 KERNEL=../s3k/s3k.elf
 APP=app/app.elf
 CONFIG_H=${abspath config.h}
+PAYLOAD=./scripts/payloads/malicious.c # Malicious payload used in app
 
 all: ${MONITOR} ${APP} ${KERNEL}
 
@@ -45,4 +46,8 @@ ${KERNEL}:
 qemu: $(KERNEL) $(MONITOR) $(APP)
 	./scripts/qemu.sh $(KERNEL) $(MONITOR) $(APP)
 
-.PHONY: all api clean qemu ${MONITOR} ${KERNEL} ${APP}
+# Generates payload used in app, see ./scripts/genpayload.sh
+genpayload:
+	./scripts/genpayload.sh $(PAYLOAD)
+
+.PHONY: all api clean qemu malicious ${MONITOR} ${KERNEL} ${APP}
