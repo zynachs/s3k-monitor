@@ -50,4 +50,4 @@ qemu: $(KERNEL) $(MONITOR) $(APP)
 genpayload:
 	./scripts/genpayload.sh $(PAYLOAD)
 
-.PHONY: all api clean qemu malicious ${MONITOR} ${KERNEL} ${APP}
+.PHONY: all api clean qemu genpayload ${MONITOR} ${KERNEL} ${APP}
