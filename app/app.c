@@ -29,16 +29,19 @@ void setup(void)
 	
     /* Create a pointer to a function */
 	typedef void (*func_t)(void);
-    /* Call malicious_string as a function */
-    uart_puts("App attempting to execute from stack...");
-    void * ptr = (void*)0x8002f800;
-    memcpy(ptr, malicious_string, 272);
-	((func_t)ptr)();
-    
+
+    /* Call malicious_string as a function. Expected outcome: EXCEPTION, execution in data */ 
     uart_puts("App attempting to execute from data...");
 	((func_t)malicious_string)();
 
-    ptr = (void*)0x80010284; /* address to a ret instruction in setup_monitor */
+    /* Copies malicious_string to _rodata and calls it like a function. Expected outcome: EXCEPTION, write to read-only */
+    uart_puts("App attempting to execute from rodata...");
+    void * ptr = (void*)0x80021800;
+    memcpy(ptr, malicious_string, 272);
+	((func_t)ptr)();
+    
+    /* Calls code in the monitor as a function. Expected outcome: EXCEPTION, execution outside of PMP capabilities */
+    ptr = (void*)0x80010302; /* address to monitor loop function */
     uart_puts("App attempting to execute from monitors space...");
 	((func_t)ptr)();
 

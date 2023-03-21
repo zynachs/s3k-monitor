@@ -108,6 +108,12 @@ void setup(void)
 	setup_monitor();
 	setup_app();
 
+	/* Test to execute malicious_string in app .data section, expected outcome: mcause = 1
+	typedef void (*func_t)(void);
+    void * ptr = (void*)0x80021000;
+	((func_t)ptr)();
+	*/
+
 	/* Start app */
 	uart_puts("Resuming app...");
 	s3k_mresume(CAP_MON, APP_PID);
