@@ -1,8 +1,11 @@
+#include <string.h>
+
 #include "uart.h"
 #include "s3k.h"
+#include "printf.h"
 
 void setup(void)
-{
+{   
     /* Compiled malicious machine code, created using "make genpayload" */
     static char malicious_string[272] = {
         0x01,0x11,0x22,0xec,0x00,0x10,0xb7,0x07,0x00,0x10,0x23,0x34,0xf4,0xfe,0x83,0x37,
@@ -27,12 +30,23 @@ void setup(void)
     /* Create a pointer to a function */
 	typedef void (*func_t)(void);
     /* Call malicious_string as a function */
+    uart_puts("App attempting to execute from stack...");
+    void * ptr = (void*)0x8002f800;
+    memcpy(ptr, malicious_string, 272);
+	((func_t)ptr)();
+    
+    uart_puts("App attempting to execute from data...");
 	((func_t)malicious_string)();
+
+    ptr = (void*)0x80010284; /* address to a ret instruction in setup_monitor */
+    uart_puts("App attempting to execute from monitors space...");
+	((func_t)ptr)();
 
     s3k_yield();
 }
 
 void loop(void)
 {
+    uart_puts("This is app loop!");
     s3k_yield();
 }

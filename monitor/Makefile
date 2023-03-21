@@ -4,7 +4,7 @@ INC=-I../common
 vpath %.c ../common
 vpath %.S ../common
 
-CSRC=monitor.c s3k-utils.c s3k-syscall.c
+CSRC=monitor.c s3k-utils.c s3k-syscall.c printf.c
 ASSRC=start.S common.S
 LDS=./monitor.lds
 BASE_ADDR=0x80010000

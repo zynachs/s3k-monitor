@@ -45,6 +45,7 @@ riscv64-unknown-elf-gdb                                 \
         -ex "add-symbol-file $PAYLOAD1"                  \
         -ex "add-symbol-file $PAYLOAD2"                  \
         -ex "b *0x80010000"                             \
+	    -ex "b handle_exception"                        \
         -ex "target remote localhost:1234"              \
         -ex "layout split"                              \
         -ex "fs cmd"                                      # tui
