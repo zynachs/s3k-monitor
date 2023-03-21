@@ -1,10 +1,7 @@
 #include "uart.h"
+#include "s3k.h"
 
 void setup(void)
-{
-}
-
-void loop(void)
 {
     /* Compiled malicious machine code, created using "make genpayload" */
     static char malicious_string[272] = {
@@ -31,4 +28,11 @@ void loop(void)
 	typedef void (*func_t)(void);
     /* Call malicious_string as a function */
 	((func_t)malicious_string)();
+
+    s3k_yield();
+}
+
+void loop(void)
+{
+    s3k_yield();
 }

@@ -115,7 +115,7 @@ The kernel does not use virtual memory and does not have an MMU. It uses physica
 │ ...         │ ...                │   /  │ 0x8002_0000 │ ...     │
 │ 0x8003_0000 │ ...                │  /   │ [2K]        │ .stack  │
 │ [64K]       │ APP                │ /    │ 0x8001_F800 │ .stack  │
-│ 0x8002_0000 │ APP                │/     │ [44K]       │ ...     │
+│ 0x8002_0000 │ APP                │/     │ [50]        │ ...     │
 │ [64K]       │ MONITOR            │      │ 0x8001_3000 │ ...     │
 │ 0x8001_0000 │ MONITOR            │      │ [4K]        │ .bss    │
 │ [64K]       │ KERNEL             │\     │ 0x8001_2000 │ .bss    │

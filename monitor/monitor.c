@@ -27,7 +27,7 @@ void setup_app(void)
 	s3k_msetreg(CAP_MON, APP_PID, S3K_REG_PMP, 0x0100);
 
 	/* Derive memory for APP */
-	uint64_t uartaddr = s3k_pmp_napot_addr(0x10000000, 0x10001000);
+	uint64_t uartaddr = s3k_pmp_napot_addr(0x10000000, 0x10000100);
 	uint64_t mainaddr = s3k_pmp_napot_addr(0x80020000, 0x80030000);
 	union s3k_cap uartcap = s3k_pmp(uartaddr, S3K_RW);
 	union s3k_cap maincap = s3k_pmp(mainaddr, S3K_RWX);
@@ -54,7 +54,7 @@ void setup_app(void)
 void setup_monitor(void) 
 {
 	/* Setup monitor with capabilities to UART memory */
-	uint64_t uartaddr = s3k_pmp_napot_addr(0x10000000, 0x10001000);
+	uint64_t uartaddr = s3k_pmp_napot_addr(0x10000000, 0x10000100);
 	union s3k_cap uartcap = s3k_pmp(uartaddr, S3K_RW);
 	while (s3k_drvcap(CAP_MEM_UART, 10, uartcap))
 		;
