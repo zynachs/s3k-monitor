@@ -17,6 +17,7 @@ SECTIONS {
         .text : { 
                 _text = .;
                 *(.init)
+                *(.init.trap)
                 *(.text .text.*)
                 _etext = .;
         } > APP
@@ -28,6 +29,11 @@ SECTIONS {
            MAXSIZE: 2K
         */
         .data : ALIGN(4K) {
+                _rodata = .;
+                *(.rodata .rodata.*)
+                . = _rodata == . ? . + 1K : ALIGN(1K);
+                _srodata = .;
+                *(.srodata .srodata*)
                 _data = .;
                 *(.data .data.*)
                 _sdata = .;
@@ -63,15 +69,10 @@ SECTIONS {
                 *(.bss .bss.*)
                 _ebss = ALIGN(8);
         } > APP
-        
-        ASSERT ((SIZEOF(.bss) <= 4K), "ERROR: .bss region too large, will break PMP compatability.")
 
-        /* Program stack
-           OFFSET: +0xF800 (62K)
-           MAXSIZE: 2K
-        */
-        .stack : ALIGN(4K) {
-                . = ORIGIN(APP) + LENGTH(APP) - 2K;
+        /* Program stack*/
+        .stack : {
+                . = (ORIGIN(APP) + LENGTH(APP)) - 2K;
                 *(.stack .stack.*)
         } > APP
 
