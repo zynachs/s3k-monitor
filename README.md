@@ -83,22 +83,36 @@ sudo apt update
 sudo apt install -y gcc-riscv64-unknown-elf qemu-system-misc
 ```
 
-1. Compile kernel, monitor and app.
+5. Compile kernel, monitor and app.
 
 ```shell
 make
 ```
-1. Execute kernel, monitor and app with qemu and launch a GDB live debugging session.
+6. Execute kernel, monitor and app with qemu and launch a GDB live debugging session.
 
 ```shell
 make qemu
 ```
 
-1. In a separate terminal read output by connecting with netcat or telnet.
+7. In a separate terminal read output by connecting with netcat or telnet.
 
 ```shell
 nc -v localhost 4321
 telnet localhost 4321
+```
+
+8. Add debugging information during execution.
+```shell
+make clean_repo
+make CLIFLAG=debug
+make qemu
+```
+
+9. Execute test (existing tests: 1, 2, 3).
+```shell
+make clean_repo
+make CLIFLAG=testX
+make qemu
 ```
 
 ## Memory layout
@@ -115,7 +129,7 @@ The kernel does not use virtual memory and does not have an MMU. It uses physica
 │ ...         │ ...                │   /  │ 0x8002_0000 │ ...     │
 │ 0x8003_0000 │ ...                │  /   │ [2K]        │ .stack  │
 │ [64K]       │ APP                │ /    │ 0x8001_F800 │ .stack  │
-│ 0x8002_0000 │ APP                │/     │ [44K]       │ ...     │
+│ 0x8002_0000 │ APP                │/     │ [50]        │ ...     │
 │ [64K]       │ MONITOR            │      │ 0x8001_3000 │ ...     │
 │ 0x8001_0000 │ MONITOR            │      │ [4K]        │ .bss    │
 │ [64K]       │ KERNEL             │\     │ 0x8001_2000 │ .bss    │

@@ -1,5 +1,6 @@
 OBJ=${addprefix obj/, ${CSRC:.c=.o} ${ASSRC:.S=.o}}
 DEP=${OBJ:.o:.d}
+CLIFLAG=
 
 # Compilation flags
 CFLAGS+=-march=rv64imac -mabi=lp64 -mcmodel=medany\
@@ -7,6 +8,16 @@ CFLAGS+=-march=rv64imac -mabi=lp64 -mcmodel=medany\
 	-Wall -Werror\
 	-g -Os\
 	-ffreestanding
+
+ifeq (${CLIFLAG},debug)
+	CFLAGS+=-DDEBUG
+else ifeq (${CLIFLAG},test1)
+	CFLAGS+=-D__TEST1
+else ifeq (${CLIFLAG},test2)
+	CFLAGS+=-D__TEST2
+else ifeq (${CLIFLAG},test3)
+	CFLAGS+=-D__TEST3
+endif
 
 ASFLAGS=-march=rv64imac -mabi=lp64 -mcmodel=medany\
 	-g\

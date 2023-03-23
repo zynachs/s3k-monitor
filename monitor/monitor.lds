@@ -23,12 +23,12 @@ SECTIONS {
                 _data = .;
                 *(.data .data.*)
                 . = _data == . ? . + 1K : ALIGN(1K);
-                _rodata = .;
-                *(.rodata .rodata.*)
-                . = _rodata == . ? . + 1K : ALIGN(1K);
                 _sdata = .;
                 *(.sdata .sdata.*)
                 . = _sdata == . ? . + 1K : ALIGN(1K);
+                _rodata = .;
+                *(.rodata .rodata.*)
+                . = _rodata == . ? . + 1K : ALIGN(1K);
                 _srodata = .;
                 *(.srodata .srodata*)
                 _edata = .;

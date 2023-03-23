@@ -13,8 +13,12 @@ PAYLOAD=./scripts/payloads/malicious.c # Malicious payload used in app
 
 all: ${MONITOR} ${APP} ${KERNEL}
 
-clean:
+clean: clean_this clean_repo
+
+clean_repo:
 	git clean -fdX
+
+clean_s3k:
 	${MAKE} -C ${dir ${KERNEL}} clean
 
 common/s3k.h: ../s3k/api/s3k.h
@@ -50,4 +54,4 @@ qemu: $(KERNEL) $(MONITOR) $(APP)
 genpayload:
 	./scripts/genpayload.sh $(PAYLOAD)
 
-.PHONY: all api clean qemu malicious ${MONITOR} ${KERNEL} ${APP}
+.PHONY: all api clean qemu genpayload ${MONITOR} ${KERNEL} ${APP}
