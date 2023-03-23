@@ -4,7 +4,7 @@ ENTRY(_start)
 
 /* Definition of memory region */
 MEMORY {
-        APP (rwaxi) : ORIGIN  = 0x80020000, LENGTH = 64K
+        APP (rwaxi) : ORIGIN  = 0x80030000, LENGTH = 64K
 }
 
 SECTIONS {

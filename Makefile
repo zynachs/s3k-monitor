@@ -7,11 +7,10 @@ export OBJDUMP=${RISCV_PREFIX}objdump
 
 MONITOR=monitor/monitor.elf
 KERNEL=../s3k/s3k.elf
-APP=app/app.elf
 CONFIG_H=${abspath config.h}
 PAYLOAD=./scripts/payloads/malicious.c # Malicious payload used in app
 
-all: ${MONITOR} ${APP} ${KERNEL}
+all: ${MONITOR} ${KERNEL}
 
 clean: clean_this clean_repo
 
@@ -35,9 +34,6 @@ api: common/s3k.h common/s3k-utils.c common/s3k-syscall.c
 ${MONITOR}: api
 	${MAKE} -C ${@D} ${@F}
 
-${APP}: api
-	${MAKE} -C ${@D} ${@F}
-
 ${KERNEL}:
 	${MAKE} -C ${@D} ${@F} CONFIG_H=${CONFIG_H}
 
@@ -47,11 +43,11 @@ ${KERNEL}:
 %.da: %.elf
 	${OBJDUMP} -d $< > $@
 
-qemu: $(KERNEL) $(MONITOR) $(APP)
-	./scripts/qemu.sh $(KERNEL) $(MONITOR) $(APP)
+qemu: $(KERNEL) $(MONITOR)
+	./scripts/qemu.sh $(KERNEL) $(MONITOR)
 
 # Generates payload used in app, see ./scripts/genpayload.sh
 genpayload:
 	./scripts/genpayload.sh $(PAYLOAD)
 
-.PHONY: all api clean qemu genpayload ${MONITOR} ${KERNEL} ${APP}
+.PHONY: all api clean qemu genpayload ${MONITOR} ${KERNEL}

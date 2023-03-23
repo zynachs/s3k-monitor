@@ -5,6 +5,8 @@ ENTRY(_start)
 /* Definition of memory region */
 MEMORY {
         MONITOR (rwaxi) : ORIGIN  = 0x80010000, LENGTH = 64K
+        APP_LOAD (rwaxi) : ORIGIN = 0x80020000, LENGTH = 64K
+        APP (rwaxi) : ORIGIN = 0x80030000, LENGTH = 64K
 }
 
 SECTIONS {
@@ -27,7 +29,7 @@ SECTIONS {
                 *(.sdata .sdata.*)
                 . = _sdata == . ? . + 1K : ALIGN(1K);
                 _rodata = .;
-                *(.rodata .rodata.*)
+                *(.rodata)
                 . = _rodata == . ? . + 1K : ALIGN(1K);
                 _srodata = .;
                 *(.srodata .srodata*)
@@ -52,4 +54,15 @@ SECTIONS {
 
         /* Hardcoded to start of .bss since it in the middle between .data and .bss */
         __global_pointer$ = _bss;
+
+        .appurino : {
+                *(.app.app)
+        } > APP_LOAD
+
+        .noinit : {
+                _noinit = .;
+                *(.noinit .noinit.*)
+                _enoinit = .;
+        } > APP
+
 }
