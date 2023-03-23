@@ -14,23 +14,24 @@ SECTIONS {
         .text : ALIGN(4K) {
                 _text = .;
                 *(.init)
+                *(.init.trap)
                 *(.text .text.*)
                 _etext = .;
         } > APP
 
         /* Program data */
         .data : ALIGN(4K) {
+                _rodata = .;
+                *(.rodata .rodata.*)
+                . = _rodata == . ? . + 1K : ALIGN(1K);
+                _srodata = .;
+                *(.srodata .srodata*)
                 _data = .;
                 *(.data .data.*)
                 . = _data == . ? . + 1K : ALIGN(1K);
                 _sdata = .;
                 *(.sdata .sdata.*)
                 . = _sdata == . ? . + 1K : ALIGN(1K);
-                _rodata = .;
-                *(.rodata .rodata.*)
-                . = _rodata == . ? . + 1K : ALIGN(1K);
-                _srodata = .;
-                *(.srodata .srodata*)
                 _edata = .;
         } > APP
 
@@ -44,8 +45,13 @@ SECTIONS {
 
         /* Program stack*/
         .stack : {
-                . = (ORIGIN(APP) + LENGTH(APP)) - 2K;
-                *(.stack .stack.*)
+                . = (ORIGIN(APP) + LENGTH(APP)) - 4K;
+                /* Dedicated stack for trap_handler */
+                _trapstack = .;
+                . += 2K;
+                _trapstack_top = .;
+                /* Generic stack */
+                *(.stack)
         } > APP
 
 	_end = .;
