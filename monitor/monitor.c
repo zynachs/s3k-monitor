@@ -26,7 +26,7 @@ void setup_app(void)
 	s3k_msetreg(CAP_MON, APP_PID, S3K_REG_PC, 0x80020000);
 	
 	/* PMP capabilities are in index 0,1,2,3,4 */
-	s3k_msetreg(CAP_MON, APP_PID, S3K_REG_PMP, 0x50403020100);
+	s3k_msetreg(CAP_MON, APP_PID, S3K_REG_PMP, 0x050403020100);
 
 	/* Create napot addresses */
 	uint64_t uartaddr = s3k_pmp_napot_addr(0x10000000, 0x10000100);
@@ -36,20 +36,12 @@ void setup_app(void)
 	uint64_t bssaddr = s3k_pmp_napot_addr(0x80022000, 0x80023000);
 	uint64_t stackaddr = s3k_pmp_napot_addr(0x8002f800, 0x80030000);
 
-	/* Check values of napot addresses */
-	printf("uartaddr = 0x%x\n", uartaddr);
-	printf("textaddr = 0x%x\n", textaddr);
-	printf("dataaddr = 0x%x\n", dataaddr);
-	printf("rodataaddr = 0x%x\n", rodataaddr);
-	printf("bssaddr = 0x%x\n", bssaddr);
-	printf("stackaddr = 0x%x\n", stackaddr);
-
 	/* Derive PMP for APP */
 	union s3k_cap uartcap = s3k_pmp(uartaddr, S3K_RW);
 	union s3k_cap textcap = s3k_pmp(textaddr, S3K_RX);
 	union s3k_cap datacap = s3k_pmp(dataaddr, S3K_RW);
 	union s3k_cap rodatacap = s3k_pmp(rodataaddr, S3K_R);
-	union s3k_cap bsscap = s3k_pmp(bssaddr, S3K_RW);
+	union s3k_cap bsscap = s3k_pmp(bssaddr, S3K_R);
 	union s3k_cap stackcap = s3k_pmp(stackaddr, S3K_RW);
 	while (s3k_drvcap(CAP_MEM_UART, 10, uartcap))
 		;
@@ -79,7 +71,7 @@ void setup_app(void)
 		;
 
 	/* Derive time for APP */
-	while (s3k_drvcap(CAP_TIME0, 16, s3k_time(0, 0, 4)))
+	while (s3k_drvcap(CAP_TIME0, 16, s3k_time(0, 0, 16)))
 		;
 
 	/* Give time to APP */
@@ -95,6 +87,17 @@ void setup_monitor(void)
 	while (s3k_drvcap(CAP_MEM_UART, CAP_PMP_UART, uartcap))
 		;
 	s3k_setreg(S3K_REG_PMP, 0x0900);
+
+	#ifdef DEBUG
+	/* DEBUG: prints active PMP registers and the capabilities */ 
+	uart_puts("=== MONITOR DEBUG INFORMATION ===");
+    printf("REG_PMP: %lx\n", s3k_getreg(S3K_REG_PMP));
+    for (uint64_t i = 0; i < 16; i++) 
+    {
+        printf("CAP %d: %lx\n", i, s3k_getcap(i));
+    }
+	uart_puts("=== END OF DEBUG INFORMATION ===");
+	#endif
 }
 
 void setup(void)
@@ -107,12 +110,6 @@ void setup(void)
 	/* Setup app and monitor */
 	setup_monitor();
 	setup_app();
-
-	/* Test to execute malicious_string in app .data section, expected outcome: mcause = 1
-	typedef void (*func_t)(void);
-    void * ptr = (void*)0x80021000;
-	((func_t)ptr)();
-	*/
 
 	/* Start app */
 	uart_puts("Resuming app...");
