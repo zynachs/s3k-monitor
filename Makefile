@@ -13,8 +13,6 @@ PAYLOAD=./scripts/payloads/malicious.c # Malicious payload used in app
 
 all: ${MONITOR} ${APP} ${KERNEL}
 
-debug: clean_repo all
-
 clean: clean_this clean_repo
 
 clean_repo:
