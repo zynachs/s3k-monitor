@@ -3,6 +3,7 @@
 
 #include "s3k.h"
 #include "uart.h"
+#include "payload.h"
 
 #define NOINIT	      __attribute__((section(".noinit")))
 #define ALIGNED(x)    __attribute__((aligned(x)))
@@ -21,6 +22,23 @@
 #define CAP_TIME3    6
 #define CAP_MON	     7
 #define CAP_CHAN     8
+
+
+/*
+Milestone A:
+Load app from binary, assign memory and copy to memory.
+ 
+milestone B:
+code validation: run binary through hash function and compare to whitelist.
+if true:
+	assign memory
+	
+	char app_mem[2][MEMSIZE] NOINIT ALIGNED(MEMSIZE);
+	and 
+	memcpy(app_mem[0], app_bin, app_bin_len)
+
+*/
+
 
 void setup(void)
 {
