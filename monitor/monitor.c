@@ -25,7 +25,7 @@
 #define CAP_MON	     7
 #define CAP_CHAN 	 8
 #define CAP_PMP_UART 9
-#define CAP_PMP_APP 20
+#define CAP_PMP_APP  20
 
 /*
 Milestone A:
@@ -61,18 +61,18 @@ void load_app()
 void setup_app(void)
 {
 	/* Set PC */ 
-	s3k_msetreg(CAP_MON, APP_PID, S3K_REG_PC, 0x80030000);
+	s3k_msetreg(CAP_MON, APP_PID, S3K_REG_PC, 0x80020000);
 	
 	/* PMP capabilities are in index 0,1,2,3,4 */
 	s3k_msetreg(CAP_MON, APP_PID, S3K_REG_PMP, 0x050403020100);
 
 	/* Create napot addresses */
 	uint64_t uartaddr = s3k_pmp_napot_addr(0x10000000, 0x10000100);
-	uint64_t textaddr = s3k_pmp_napot_addr(0x80030000, 0x80031000);
-	uint64_t dataaddr = s3k_pmp_napot_addr(0x80031000, 0x80031800);
-	uint64_t rodataaddr = s3k_pmp_napot_addr(0x80031800, 0x80032000);
-	uint64_t bssaddr = s3k_pmp_napot_addr(0x80032000, 0x80033000);
-	uint64_t stackaddr = s3k_pmp_napot_addr(0x8003f800, 0x80040000);
+	uint64_t textaddr = s3k_pmp_napot_addr(0x80020000, 0x80021000);
+	uint64_t dataaddr = s3k_pmp_napot_addr(0x80021000, 0x80021800);
+	uint64_t rodataaddr = s3k_pmp_napot_addr(0x80021800, 0x80022000);
+	uint64_t bssaddr = s3k_pmp_napot_addr(0x80022000, 0x80023000);
+	uint64_t stackaddr = s3k_pmp_napot_addr(0x8002f800, 0x80030000);
 
 	/* Derive PMP for APP */
 	union s3k_cap uartcap = s3k_pmp(uartaddr, S3K_RW);
@@ -121,7 +121,7 @@ void setup_monitor(void)
 {
 	/* Setup monitor with capabilities to UART memory */
 	uint64_t uartaddr = s3k_pmp_napot_addr(0x10000000, 0x10000100);
-	uint64_t appaddr = s3k_pmp_napot_addr((uint64_t)app_mem, (uint64_t)app_mem + 65536);
+	uint64_t appaddr = s3k_pmp_napot_addr(0x80020000, 0x80030000);
 	
 	union s3k_cap uartcap = s3k_pmp(uartaddr, S3K_RW);
 	union s3k_cap appcap = s3k_pmp(appaddr, S3K_RW);
@@ -137,7 +137,7 @@ void setup_monitor(void)
 	/* DEBUG: prints active PMP registers and the capabilities */ 
 	uart_puts("=== MONITOR DEBUG INFORMATION ===");
     printf("REG_PMP: %lx\n", s3k_getreg(S3K_REG_PMP));
-    for (uint64_t i = 0; i < 16; i++) 
+    for (uint64_t i = 0; i < 32; i++) 
     {
         printf("CAP %d: %lx\n", i, s3k_getcap(i));
     }
@@ -154,8 +154,8 @@ void setup(void)
 
 	/* Setup app and monitor */
 	setup_monitor();
-	setup_app();
 	load_app();
+	setup_app();
 
 	/* Start app */
 	uart_puts("Resuming app...");
