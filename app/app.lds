@@ -65,7 +65,12 @@ SECTIONS {
                 _ebss = ALIGN(8);
         } > APP
 
-        /* Program stack*/
+        ASSERT ((SIZEOF(.bss) <= 4K), "ERROR: .bss region too large, will break PMP compatability.")
+
+        /* Program stack
+           OFFSET: +0xF800 (62K)
+           MAXSIZE: 4K
+        */
         .stack : {
                 . = (ORIGIN(APP) + LENGTH(APP)) - 4K;
                 /* Dedicated stack for trap_handler */
