@@ -2,6 +2,7 @@ OUTPUT_ARCH("riscv")
 
 ENTRY(_start)
 
+/* Definition of memory region */
 MEMORY {
         APP (rwaxi) : ORIGIN  = 0x80020000, LENGTH = 64K
 }

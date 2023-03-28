@@ -58,6 +58,11 @@ SECTIONS {
                 *(.stack .stack.*)
         } > MONITOR
 
+        /* End of App (0x80030000) 
+           OFFSET: +0x20000 (64K)
+        */
+	_end = .;
+
         /* Reserved for app 
            OFFSET: +0x10000 (64K)
         */
@@ -69,9 +74,4 @@ SECTIONS {
 
         /* Hardcoded to start of .bss since it in the middle between .data and .bss */
         __global_pointer$ = _bss;
-        
-        /* End of App (0x80030000) 
-           OFFSET: +0x20000 (64K)
-        */
-	_end = .;
 }

@@ -14,7 +14,6 @@ fi
 
 MONITOR=$(mktemp /tmp/XXXXX1.bin)
 
-
 riscv64-unknown-elf-objcopy -O binary $PAYLOAD1 $MONITOR
 
 function cleanup() {
@@ -35,7 +34,7 @@ riscv64-unknown-elf-gdb                                 \
         -ex "symbol-file $KERNEL"                       \
         -ex "add-symbol-file $PAYLOAD1"                  \
         -ex "b *0x80010000"                             \
-	    -ex "b handle_exception"                        \
+	-ex "b handle_exception"                        \
         -ex "target remote localhost:1234"              \
         -ex "layout split"                              \
         -ex "fs cmd"                                      # tui
