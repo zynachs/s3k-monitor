@@ -29,6 +29,9 @@ LDFLAGS=-march=rv64imac -mabi=lp64 -mcmodel=medany\
 	-nostartfiles\
 	-T${LDS}
 
+# Remove zeroed regions from binary to save space
+OCFLAGS=-R .bss -R .stack
+
 obj:
 	mkdir -p $@
 
@@ -44,6 +47,6 @@ ${PROGRAM}.elf: ${OBJ} ${LDS}
 	${CC} ${LDFLAGS} -o $@ ${OBJ}
 
 ${PROGRAM}.bin: ${PROGRAM}.elf
-	${OBJCOPY} -O binary $< $@
+	${OBJCOPY} ${OCFLAGS} -O binary $< $@
 
 -include ${DEP}

@@ -4,6 +4,12 @@
 #include "s3k.h"
 #include "uart.h"
 #include "printf.h"
+#include "payload.h"
+
+#define NOINIT	      __attribute__((section(".noinit")))
+#define ALIGNED(x)    __attribute__((aligned(x)))
+
+#define MEMSIZE 65536
 
 #define MONITOR_PID 0
 #define APP_PID 1
@@ -17,8 +23,40 @@
 #define CAP_TIME2    5
 #define CAP_TIME3    6
 #define CAP_MON	     7
-#define CAP_CHAN     8
+#define CAP_CHAN 	 8
 #define CAP_PMP_UART 9
+#define CAP_PMP_APP  20
+
+/*
+Milestone A:
+Load app from binary, assign memory and copy to memory.
+
+	char app_mem[2][MEMSIZE] NOINIT ALIGNED(MEMSIZE);
+	and 
+	memcpy(app_mem[0], app_bin, app_bin_len)
+ 
+milestone B:
+code validation: run binary through hash function and compare to whitelist.
+if true:
+	assign memory
+	
+	char app_mem[2][MEMSIZE] NOINIT ALIGNED(MEMSIZE);
+	and 
+	memcpy(app_mem[0], app_bin, app_bin_len)
+
+*/
+
+/*Allocate memory for app: */
+char app_mem[MEMSIZE] NOINIT ALIGNED(MEMSIZE);
+
+void load_app()
+{
+	/*function call to verify app: */
+
+	/*Copy app-binary to allocated memory: */
+	memcpy(app_mem, app_bin, app_bin_len);
+}
+	
 
 void setup_app(void)
 {
@@ -83,16 +121,23 @@ void setup_monitor(void)
 {
 	/* Setup monitor with capabilities to UART memory */
 	uint64_t uartaddr = s3k_pmp_napot_addr(0x10000000, 0x10000100);
+	uint64_t appaddr = s3k_pmp_napot_addr(0x80020000, 0x80030000);
+	
 	union s3k_cap uartcap = s3k_pmp(uartaddr, S3K_RW);
+	union s3k_cap appcap = s3k_pmp(appaddr, S3K_RW);
+
 	while (s3k_drvcap(CAP_MEM_UART, CAP_PMP_UART, uartcap))
 		;
-	s3k_setreg(S3K_REG_PMP, 0x0900);
+	while (s3k_drvcap(CAP_MEM_MAIN, CAP_PMP_APP, appcap))
+		;
+	
+	s3k_setreg(S3K_REG_PMP, 0x140900);
 
 	#ifdef DEBUG
 	/* DEBUG: prints active PMP registers and the capabilities */ 
 	uart_puts("=== MONITOR DEBUG INFORMATION ===");
     printf("REG_PMP: %lx\n", s3k_getreg(S3K_REG_PMP));
-    for (uint64_t i = 0; i < 16; i++) 
+    for (uint64_t i = 0; i < 32; i++) 
     {
         printf("CAP %d: %lx\n", i, s3k_getcap(i));
     }
@@ -109,6 +154,7 @@ void setup(void)
 
 	/* Setup app and monitor */
 	setup_monitor();
+	load_app();
 	setup_app();
 
 	/* Start app */
