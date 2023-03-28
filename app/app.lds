@@ -14,33 +14,45 @@ SECTIONS {
            OFFSET: +0x00
            MAXsize: 4K
         */
-        .text : ALIGN(4K) { 
+        .text : { 
                 _text = .;
                 *(.init)
                 *(.text .text.*)
                 _etext = .;
         } > APP
 
+        ASSERT ((SIZEOF(.text) <= 4K), "ERROR: .text region too large, will break PMP compatability.")
+
         /* Program data 
            OFFSET: +0x1000 (4K) 
-           MAXSIZE: 4K
+           MAXSIZE: 2K
         */
         .data : ALIGN(4K) {
-                _rodata = .;
-                *(.rodata .rodata.*)
-                . = _rodata == . ? . + 1K : ALIGN(1K);
-                _srodata = .;
-                *(.srodata .srodata*)
-                . = _srodata == . ? . + 1K : ALIGN(1K);
                 _data = .;
                 *(.data .data.*)
-                . = _data == . ? . + 1K : ALIGN(1K);
                 _sdata = .;
                 *(.sdata .sdata.*)
-                . = _sdata == . ? . + 1K : ALIGN(1K);
                 _edata = .;
+                . = _data == . ? . + 2K : .; /* if .data is empty move position forward anyways */
         } > APP
 
+        ASSERT ((SIZEOF(.data) <= 2K), "ERROR: .data region too large, will break PMP compatability.")
+
+        /* Program read-only data
+           OFFSET: +0x1800 (2K) 
+           MAXSIZE: 2K
+        */
+        .rodata : ALIGN(2K) {
+                _rodata = .;
+                *(.rodata .rodata.*)
+                _srodata = .;
+                *(.srodata .srodata*)
+                _erodata = .;
+                . = _rodata == . ? . + 2K : .; /* if .rodata is empty move position forward anyways */
+        } > APP
+        
+        ASSERT ((SIZEOF(.rodata) <= 2K), "ERROR: .rodata region too large, will break PMP compatability.")
+        
         /* Zero initialized region
            OFFSET: +0x2000 (8K)
            MAXSIZE: 4K
@@ -51,6 +63,8 @@ SECTIONS {
                 *(.bss .bss.*)
                 _ebss = ALIGN(8);
         } > APP
+        
+        ASSERT ((SIZEOF(.bss) <= 4K), "ERROR: .bss region too large, will break PMP compatability.")
 
         /* Program stack
            OFFSET: +0xF800 (62K)

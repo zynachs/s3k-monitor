@@ -34,6 +34,7 @@ SECTIONS {
                 _sdata = .;
                 *(.sdata .sdata.*)
                 _edata = .;
+                . = _data == . ? . + 8K : .; /* if .data is empty move position forward anyways */
         } > MONITOR
         
         ASSERT ((SIZEOF(.data) <= 8K), "ERROR: .data region too large, will break PMP compatability.")
@@ -48,6 +49,7 @@ SECTIONS {
                 _srodata = .;
                 *(.srodata .srodata*)
                 _erodata = .;
+                . = _rodata == . ? . + 16K : .; /* if .rodata is empty move position forward anyways */
         }
 
         ASSERT ((SIZEOF(.rodata) <= 16K), "ERROR: .rodata region too large, will break PMP compatability.")
