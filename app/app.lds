@@ -68,10 +68,12 @@ SECTIONS {
         /* Program stack*/
         .stack : {
                 . = (ORIGIN(APP) + LENGTH(APP)) - 4K;
+                /* Dedicated stack for trap_handler */
                 _trapstack = .;
-                . = . + 2K;
+                . += 2K;
                 _trapstack_top = .;
-                *(.stack .stack.*)
+                /* Generic stack */
+                *(.stack)
         } > APP
 
         /* Hardcoded to start of .bss since it in the middle between .data and .bss */
