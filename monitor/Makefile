@@ -9,13 +9,6 @@ ASSRC=start.S common.S payload.S
 LDS=./monitor.lds
 BASE_ADDR=0x80010000
 
-BIN=../app/app.bin
-
-${BIN}:
-	${MAKE} -C ${@D} ${@F}
-
-obj/payload.o: ${BIN}
+OBJCOPY_DBG=-R .noinit
 
 include ../config.mk
-
-.PHONY: ${BIN}

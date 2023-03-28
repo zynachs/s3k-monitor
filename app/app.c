@@ -11,7 +11,8 @@ void setup(void);
 void loop(void);
 
 void trap_handler(void){
-    printf("This is the trap handler!\n");
+    printf("This is the trap handler! Returning to loop.\n");
+    s3k_setreg(S3K_REG_EPC, (uint64_t)loop);
 }
 
 void setup(void)

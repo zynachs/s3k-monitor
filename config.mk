@@ -1,14 +1,8 @@
 OBJ=${addprefix obj/, ${CSRC:.c=.o} ${ASSRC:.S=.o}}
 DEP=${OBJ:.o:.d}
+
+# flags passed in cmd
 CLIFLAG=
-
-# Compilation flags
-CFLAGS+=-march=rv64imac -mabi=lp64 -mcmodel=medany\
-	-std=c11\
-	-Wall -Werror\
-	-g -Os\
-	-ffreestanding
-
 ifeq (${CLIFLAG},debug)
 	CFLAGS+=-DDEBUG
 else ifeq (${CLIFLAG},test1)
@@ -18,6 +12,16 @@ else ifeq (${CLIFLAG},test2)
 else ifeq (${CLIFLAG},test3)
 	CFLAGS+=-D__TEST3
 endif
+
+# Standard objcopy flags for creating debug symbol files
+OBJCOPY_DBG+=--only-keep-debug
+
+# Compilation flags
+CFLAGS+=-march=rv64imac -mabi=lp64 -mcmodel=medany\
+	-std=c11\
+	-Wall -Werror\
+	-g -Os\
+	-ffreestanding
 
 ASFLAGS=-march=rv64imac -mabi=lp64 -mcmodel=medany\
 	-g\
@@ -30,7 +34,7 @@ LDFLAGS=-march=rv64imac -mabi=lp64 -mcmodel=medany\
 	-T${LDS}
 
 # Remove zeroed regions from binary to save space
-OCFLAGS=-R .bss -R .stack
+BINFLAGS=-R .bss -R .stack
 
 obj:
 	mkdir -p $@
@@ -47,6 +51,10 @@ ${PROGRAM}.elf: ${OBJ} ${LDS}
 	${CC} ${LDFLAGS} -o $@ ${OBJ}
 
 ${PROGRAM}.bin: ${PROGRAM}.elf
-	${OBJCOPY} ${OCFLAGS} -O binary $< $@
+	${OBJCOPY} ${BINFLAGS} -O binary $< $@
+
+${PROGRAM}.elf.dbg: ${PROGRAM}.elf
+	${OBJCOPY} ${OBJCOPY_DBG} $< $@
+	${OBJCOPY} --strip-debug $<
 
 -include ${DEP}

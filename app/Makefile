@@ -9,11 +9,4 @@ ASSRC=start.S common.S
 LDS=./app.lds
 BASE_ADDR=0x80020000
 
-${BIN}:
-	${MAKE} -C ${@D} ${@F}
-
-obj/payload.o: ${BIN}
-
 include ../config.mk
-
-.PHONY: ${BIN}
