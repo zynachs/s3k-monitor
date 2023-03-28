@@ -9,68 +9,87 @@ MEMORY {
 }
 
 SECTIONS {
-        /* All regions are statically aligned to 4K to be compatible with PMP */
+        /* All regions are statically aligned to be compatible with PMP */
 
         /* Program instructions 
            OFFSET: +0x00
+           MAXSIZE: 8K
         */
-        .text : ALIGN(4K) { 
+        .text : { 
                 _text = .;
                 *(.init)
                 *(.text .text.*)
                 _etext = .;
         } > MONITOR
 
+        ASSERT ((SIZEOF(.text) <= 8K), "ERROR: .text region too large, will break PMP compatability.")
+
         /* Program data 
-           OFFSET: +0x4000 (16K) 
+           OFFSET: +0x2000 (8K) 
+           MAXSIZE: 8K
         */
-        .data : ALIGN(16K) {
-                _rodata = .;
-                *(.rodata .rodata.*)
-                . = _rodata == . ? . + 8K : ALIGN(8K);
-                _srodata = .;
-                *(.srodata .srodata*)
-                . = _srodata == . ? . + 4K : ALIGN(4K);
+        .data : ALIGN(8K) {
                 _data = .;
                 *(.data .data.*)
-                . = _data == . ? . + 2K : ALIGN(2K);
                 _sdata = .;
                 *(.sdata .sdata.*)
-                . = _sdata == . ? . + 2K : ALIGN(2K);
                 _edata = .;
         } > MONITOR
+        
+        ASSERT ((SIZEOF(.data) <= 8K), "ERROR: .data region too large, will break PMP compatability.")
+
+        /* Program read-only data
+           OFFSET: +0x4000 (16K) 
+           MAXSIZE: 16K
+        */
+        .rodata : ALIGN(16K) {
+                _rodata = .;
+                *(.rodata .rodata.*)
+                _srodata = .;
+                *(.srodata .srodata*)
+                _erodata = .;
+        }
+
+        ASSERT ((SIZEOF(.rodata) <= 16K), "ERROR: .rodata region too large, will break PMP compatability.")
 
         /* Zero initialized region
            OFFSET: +0x8000 (32K)
+           MAXSIZE: 4K
         */
-        .bss : ALIGN(4K) {
+        .bss : ALIGN(16K) {
                 _bss = .;
                 *(.sbss .sbss.*)
                 *(.bss .bss.*)
                 _ebss = ALIGN(8);
         } > MONITOR
+        
+        ASSERT ((SIZEOF(.bss) <= 4K), "ERROR: .bss region too large, will break PMP compatability.")
 
         /* Program stack
            OFFSET: +0xF800 (62K)
+           MAXSIZE: 2K
         */
         .stack : ALIGN(4K) {
                 . = LENGTH(MONITOR) + ORIGIN(MONITOR) - 2K;
                 *(.stack .stack.*)
         } > MONITOR
-
-        /* End of App (0x80030000) 
-           OFFSET: +0x20000 (64K)
+        
+        /* End of monitor (0x80020000) 
+           OFFSET: +0x10000 (64K)
         */
 	_end = .;
 
         /* Reserved for app 
            OFFSET: +0x10000 (64K)
+           MAXSIZE: 64K
         */
         .noinit : {
                 _noinit = .;
                 *(.noinit .noinit.*)
                 _enoinit = .;
         } > NOINIT
+
+        ASSERT ((SIZEOF(.noinit) <= 64K), "ERROR: .noinit region too large, space not accounted for.")
 
         /* Hardcoded to start of .bss since it in the middle between .data and .bss */
         __global_pointer$ = _bss;

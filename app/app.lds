@@ -8,10 +8,11 @@ MEMORY {
 }
 
 SECTIONS {
-        /* All regions are statically aligned to 4K to be compatible with PMP */
+        /* All regions are statically aligned to be compatible with PMP */
 
         /* Program instructions 
            OFFSET: +0x00
+           MAXsize: 4K
         */
         .text : ALIGN(4K) { 
                 _text = .;
@@ -22,6 +23,7 @@ SECTIONS {
 
         /* Program data 
            OFFSET: +0x1000 (4K) 
+           MAXSIZE: 4K
         */
         .data : ALIGN(4K) {
                 _rodata = .;
@@ -41,6 +43,7 @@ SECTIONS {
 
         /* Zero initialized region
            OFFSET: +0x2000 (8K)
+           MAXSIZE: 4K
         */
         .bss : ALIGN(4K) {
                 _bss = .;
@@ -51,6 +54,7 @@ SECTIONS {
 
         /* Program stack
            OFFSET: +0xF800 (62K)
+           MAXSIZE: 2K
         */
         .stack : ALIGN(4K) {
                 . = ORIGIN(APP) + LENGTH(APP) - 2K;
