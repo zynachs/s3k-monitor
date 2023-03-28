@@ -29,11 +29,6 @@ SECTIONS {
            MAXSIZE: 2K
         */
         .data : ALIGN(4K) {
-                _rodata = .;
-                *(.rodata .rodata.*)
-                . = _rodata == . ? . + 1K : ALIGN(1K);
-                _srodata = .;
-                *(.srodata .srodata*)
                 _data = .;
                 *(.data .data.*)
                 _sdata = .;
@@ -72,7 +67,10 @@ SECTIONS {
 
         /* Program stack*/
         .stack : {
-                . = (ORIGIN(APP) + LENGTH(APP)) - 2K;
+                . = (ORIGIN(APP) + LENGTH(APP)) - 4K;
+                _trapstack = .;
+                . = . + 2K;
+                _trapstack_top = .;
                 *(.stack .stack.*)
         } > APP
 
