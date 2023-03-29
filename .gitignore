@@ -1,6 +1,3 @@
-# Debug folder
-debug/
-
 # Prerequisites
 *.d
 
@@ -14,6 +11,3 @@ debug/
 # Debug files
 *.su
 *.dbg
-
-# Volatile files
-.gdbinit
