@@ -38,7 +38,10 @@ debug/monitor.dbg: monitor/monitor.elf.dbg
 debug/app.dbg: app/app.elf.dbg
 	mv $< $@
 
-debug: debug/monitor.dbg debug/app.dbg 
+debug/:
+	mkdir $@
+
+debug: debug/ debug/monitor.dbg debug/app.dbg 
 
 ${basename ${MONITOR}}.elf.dbg: ${MONITOR}
 	${MAKE} -C ${@D} ${@F}
