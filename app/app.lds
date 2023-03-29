@@ -17,6 +17,7 @@ SECTIONS {
         .text : { 
                 _text = .;
                 *(.init)
+                *(.init.trap)
                 *(.text .text.*)
                 _etext = .;
         } > APP
@@ -63,16 +64,21 @@ SECTIONS {
                 *(.bss .bss.*)
                 _ebss = ALIGN(8);
         } > APP
-        
+
         ASSERT ((SIZEOF(.bss) <= 4K), "ERROR: .bss region too large, will break PMP compatability.")
 
         /* Program stack
            OFFSET: +0xF800 (62K)
-           MAXSIZE: 2K
+           MAXSIZE: 4K
         */
-        .stack : ALIGN(4K) {
-                . = ORIGIN(APP) + LENGTH(APP) - 2K;
-                *(.stack .stack.*)
+        .stack : {
+                . = (ORIGIN(APP) + LENGTH(APP)) - 4K;
+                /* Dedicated stack for trap_handler */
+                _trapstack = .;
+                . += 2K;
+                _trapstack_top = .;
+                /* Generic stack */
+                *(.stack)
         } > APP
 
         /* Hardcoded to start of .bss since it in the middle between .data and .bss */

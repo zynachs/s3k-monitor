@@ -72,7 +72,7 @@ void setup_app(void)
 	uint64_t dataaddr = s3k_pmp_napot_addr(0x80021000, 0x80021800);
 	uint64_t rodataaddr = s3k_pmp_napot_addr(0x80021800, 0x80022000);
 	uint64_t bssaddr = s3k_pmp_napot_addr(0x80022000, 0x80023000);
-	uint64_t stackaddr = s3k_pmp_napot_addr(0x8002f800, 0x80030000);
+	uint64_t stackaddr = s3k_pmp_napot_addr(0x8002f000, 0x80030000);
 
 	/* Derive PMP for APP */
 	union s3k_cap uartcap = s3k_pmp(uartaddr, S3K_RW);
