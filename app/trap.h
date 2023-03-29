@@ -1,2 +1,2 @@
 
-__attribute__((interrupt("machine"))) __attribute__((section(".init.trap"))) void trap_handler(void);
+__attribute__((interrupt("user"))) __attribute__((section(".init.trap"))) void trap_handler(void);

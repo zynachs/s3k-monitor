@@ -11,8 +11,9 @@ void setup(void);
 void loop(void);
 
 void trap_handler(void){
-    printf("This is the trap handler! Returning to loop.\n");
+    printf("This is the trap handler! Returning to loop.\nSP at exception: %d\n", s3k_getreg(S3K_REG_ESP));
     s3k_setreg(S3K_REG_EPC, (uint64_t)loop);
+    s3k_setreg(S3K_REG_ESP, (uint64_t)0x80030000);
 }
 
 void setup(void)
@@ -85,7 +86,6 @@ void setup(void)
 
 void loop(void)
 {
-    uart_puts("This is app loop!");
-    trap_handler();
+    uart_puts("This is app loop! test");
     s3k_yield();
 }
