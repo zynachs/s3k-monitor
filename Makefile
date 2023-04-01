@@ -45,7 +45,7 @@ monitor: app
 kernel:
 	${MAKE} -C ../s3k $@ CONFIG_H=${CONFIG_H}
 
-qemu: kernel debug
+qemu: all debug
 	./scripts/qemu.sh $(KERNEL) ${MONITOR}
 
 # Generates payload used in app, see ./scripts/genpayload.sh

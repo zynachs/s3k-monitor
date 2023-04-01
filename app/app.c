@@ -15,7 +15,7 @@ void trap_handler(void){
     printf("This is the trap handler! Returning to loop.\nPC: %x\nSP: %x\nCAUSE: %d\nVAL: %x\n", s3k_getreg(S3K_REG_EPC), s3k_getreg(S3K_REG_ESP), s3k_getreg(S3K_REG_ECAUSE), s3k_getreg(S3K_REG_EVAL));
     
     
-    s3k_setreg(S3K_REG_EPC, (uint64_t)$_text);
+    s3k_setreg(S3K_REG_EPC, (uint64_t)&_text);
     s3k_setreg(S3K_REG_ESP, (uint64_t)0x80030000);
 }
 
