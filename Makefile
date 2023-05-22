@@ -7,7 +7,7 @@ export OBJDUMP=${RISCV_PREFIX}objdump
 
 MONITOR=monitor/monitor.bin
 APP=app/app.bin
-KERNEL=../s3k/build/s3k.elf
+KERNEL=../s3k/s3k.elf
 CONFIG_H=${abspath config.h}
 PAYLOAD=./scripts/payloads/malicious.c # Malicious payload used in app
 
