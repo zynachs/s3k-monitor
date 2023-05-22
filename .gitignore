@@ -11,6 +11,3 @@
 # Debug files
 *.su
 *.dbg
-
-# Volatile files
-.gdbinit

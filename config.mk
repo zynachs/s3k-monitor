@@ -53,8 +53,7 @@ ${PROGRAM}.elf: ${OBJ} ${LDS}
 ${PROGRAM}.bin: ${PROGRAM}.elf
 	${OBJCOPY} ${BINFLAGS} -O binary $< $@
 
-${PROGRAM}.elf.dbg: ${PROGRAM}.elf
+${PROGRAM}.dbg: ${PROGRAM}.elf
 	${OBJCOPY} ${OBJCOPY_DBG} $< $@
-	${OBJCOPY} --strip-debug $<
 
 -include ${DEP}

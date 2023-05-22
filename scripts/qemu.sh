@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
+
+function cleanup() {
+    rm -f $GDBINIT
+    kill $(jobs -p)
+}
+
+trap cleanup EXIT
+
 KERNEL=$1
 PAYLOAD=$2
-BASEDIR=$(dirname "$0")
+GDBINIT=$(mktemp)
 
 if [ -z "$KERNEL" ]; then
     echo "Arg 1, KERNEL elf, missing."
@@ -13,26 +21,39 @@ if [ -z "$PAYLOAD" ]; then
     exit 1
 fi
 
-function cleanup() {
-        kill $(jobs -p)
-}
-
-trap cleanup EXIT
-
-qemu-system-riscv64 -M virt -smp 1 -m 1G -nographic -bios none -kernel $KERNEL -s -S \
+# Start qemu in background
+qemu-system-riscv64 \
+        -M virt \
+        -smp 1 \
+        -m 1G \
+        -nographic \
+        -bios none \
+        -kernel $KERNEL \
+        -s \
+        -S \
         -device loader,file=$PAYLOAD,addr=0x80010000 \
         -serial tcp:localhost:4321,server,nowait &
 
+# Finds all files ending with .dbg
+DEBUGFILES=$(for f in $(find -type f -name *.dbg); do echo -e "add-symbol-file $f"; done)                       
+
+# Initial breakpoints. To add a new breakpoint, append a line before the last "EOL". Only one breakpoint per line. 
+BREAKPOINTS=$(sed -e 's/^\s*/b /' << EOL
+    *0x80010000 
+    handle_exception 
+EOL
+)
+
+# Generates config file 
 echo -en "\
 set confirm off                           
 set pagination off                        
-symbol-file $KERNEL
-$(for f in $(ls $BASEDIR/../debug); do echo -e "add-symbol-file debug/$f"; done)                       
-b *0x80010000                             
-b handle_exception                        
+file $KERNEL
+$DEBUGFILES
+$BREAKPOINTS
 target remote localhost:1234              
 layout split                              
 fs cmd
-" > $BASEDIR/.gdbinit
+" > $GDBINIT
 
-riscv64-unknown-elf-gdb -x $BASEDIR/.gdbinit
+riscv64-unknown-elf-gdb -x $GDBINIT
