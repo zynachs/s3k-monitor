@@ -10,6 +10,7 @@ trap cleanup EXIT
 KERNEL=$1
 PAYLOAD=$2
 GDBINIT=$(mktemp)
+BREAKPOINT_FILE=$(dirname -- "${BASH_SOURCE[0]}")/breakpoints.txt
 
 if [ -z "$KERNEL" ]; then
     echo "Arg 1, KERNEL elf, missing."
@@ -38,11 +39,7 @@ qemu-system-riscv64 \
 DEBUGFILES=$(for f in $(find -type f -name *.dbg); do echo -e "add-symbol-file $f"; done)                       
 
 # Initial breakpoints. To add a new breakpoint, append a line before the last "EOL". Only one breakpoint per line. 
-BREAKPOINTS=$(sed -e 's/^\s*/b /' << EOL
-    *0x80010000 
-    handle_exception 
-EOL
-)
+BREAKPOINTS=$(sed -e 's/^\s*/b /' < $BREAKPOINT_FILE)
 
 # Generates config file 
 echo -en "\

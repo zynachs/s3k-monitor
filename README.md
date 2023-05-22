@@ -20,6 +20,8 @@ The project's goal is to implement security features into [kth-step/s3k](https:/
   - [Overview](#overview)
   - [Repository layout](#repository-layout)
     - [Notable folders and files:](#notable-folders-and-files)
+  - [Dependencies and compatibility](#dependencies-and-compatibility)
+    - [Required software:](#required-software)
   - [Compiling and running](#compiling-and-running)
   - [Memory layout](#memory-layout)
 ---
@@ -51,6 +53,7 @@ This repository consists of mainly two applications: *monitor* and *app*. The mo
 | [monitor/monitor.lds](./monitor/monitor.lds) | Linker script. |
 | [scripts/](./scripts/) | Contains helpful tools |
 | [scripts/payloads/](./scripts/payloads/) | Contains C source files which are used by genpayload.sh to create raw machine code. |
+| [scripts/breakpoints.txt](./scripts/breakpoints.txt) | Text file containing one breakpoint per line GDB which is executed in qemu.sh |
 | [scripts/genpayload.sh](./scripts/genpayload.sh) | Bash script which generates a comma-seperated list of raw machine code in 0x notation from a C source file. |
 | [scripts/qemu.sh](./scripts/qemu.sh) | Bash script which emulates the kernel, monitor and app with qemu and spawns a gdb live debugging prompt. |
 | [scripts/riscvpmp.py](./scripts/riscvpmp.py) | Python script which translates a pmpaddr to start and end address. |
@@ -60,18 +63,37 @@ This repository consists of mainly two applications: *monitor* and *app*. The mo
 | [Makefile](./Makefile) | Root Makefile, includes all other makefiles. Used to compile and execute the repository files |
 | [project-proposal.md](./project-proposal.md) | Original project proposal, 2023-03-02. |
 
+
+## Dependencies and compatibility
+
+> The development environment for this repository is Ubuntu Linux on [WSL](https://learn.microsoft.com/en-us/windows/wsl/install). It should be compatible with most Linux distributions on bare-metal installations or virtual machines.
+
+### Required software:
+
+| Software | Version | Source | Note | 
+| --- | --- | --- | --- | 
+| git | N/A | https://git-scm.com/ | - | 
+| GNU Make | N/A | https://www.gnu.org/software/make/ | - |
+| RISC-V GNU Compiler Toolchain | tag: 2023.02.21 | https://github.com/riscv-collab/riscv-gnu-toolchain/releases/tag/2023.02.21 | Only tested the specified version and compiled from source. Version in package manager might be outdated. |
+| QEMU | Release: 7.2.0 | https://github.com/qemu/qemu/releases/tag/v7.2.0 | Only tested the specified version and compiled from source. Version in package manager might be outdated. |
+| kth-step/s3k | commit: 7e76f66 | https://github.com/kth-step/s3k/commit/7e76f668fd394e4eea94c281c9b66c8b934400a6 | Only tested and compatible with the specified commit of s3k. |
+
+
 ## Compiling and running
 
->This repository **DEPENDS** on and expects that it resides in the same parent folder as [step-kth/s3k](https://github.com/kth-step/s3k).
+> This repository **DEPENDS** on and expects that it resides in the same parent folder as [kth-step/s3k](https://github.com/kth-step/s3k).
 
 1. Clone both repositories.
-2. Make sure that they are in the same parent folder.
-3. Cd into s3k-monitor
+2. Checkout step-kth/s3k to commit `7e76f668fd394e4eea94c281c9b66c8b934400a6`
+3. Make sure that they are in the same parent folder.
+4. Cd into s3k-monitor
 
 ```shell
 git clone https://github.com/zynachs/s3k-monitor.git
 git clone https://github.com/kth-step/s3k.git
-cd s3k-monitor
+cd s3k
+git checkout 7e76f66
+cd ../s3k-monitor
 ```
 
 4. Install prerequisite packages and tools, build from source or install from package manager. The links below are to the sources. the code block is an example of installing with the apt package manager on Ubuntu.
