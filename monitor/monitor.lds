@@ -5,7 +5,7 @@ ENTRY(_start)
 /* Definition of memory region */
 MEMORY {
         MONITOR (rwaxi) : ORIGIN  = 0x80010000, LENGTH = 64K
-        NOINIT (rwaxi) : ORIGIN = 0x80020000, LENGTH = 64K 
+        /* NOINIT (rwaxi) : ORIGIN = 0x80020000, LENGTH = 64K */
 }
 
 SECTIONS {
@@ -85,6 +85,7 @@ SECTIONS {
            OFFSET: +0x10000 (64K)
            MAXSIZE: 64K
         */
+        /*
         .noinit : {
                 _noinit = .;
                 *(.noinit .noinit.*)
@@ -92,6 +93,7 @@ SECTIONS {
         } > NOINIT
 
         ASSERT ((SIZEOF(.noinit) <= 64K), "ERROR: .noinit region too large, space not accounted for.")
+        */
 
         /* Hardcoded to start of .bss since it in the middle between .data and .bss */
         __global_pointer$ = _bss;

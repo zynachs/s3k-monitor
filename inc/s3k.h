@@ -41,6 +41,10 @@ enum s3k_excpt {
 	S3K_EXCPT_SUSPENDED,	///< Process was suspended
 	S3K_EXCPT_MPID,		///< Bad PID for monitor operation.
 	S3K_EXCPT_MBUSY,	///< Process busy.
+	S3K_EXCPT_INVALID_CAP,	///< Capability used for the system call is
+				///< invalid.
+	S3K_EXCPT_NO_RECEIVER,	///< No receiver for the send call.
+	S3K_EXCPT_SEND_CAP,	///< Something stops sending of capability.
 	S3K_EXCPT_UNIMPLEMENTED ///< System call not implemented for specified
 				///< capability.
 };
@@ -132,70 +136,64 @@ enum s3k_reg {
 /// @defgroup cap-def S3K Capability Definitions
 /// @{
 
-/// Time slice capability
-struct s3k_time {
-	uint64_t type : 4;   ///< Type of capability, should be S3K_CAPTY_TIME.
-	uint64_t _padd : 4;  ///< Padding, should be zero.
-	uint64_t hartid : 8; ///< Hardware Thread ID.
-	uint64_t begin : 16; ///< Beginning of time slice.
-	uint64_t free : 16;  ///< Beginning of available/unallocated time slice.
-	uint64_t end : 16;   ///< End of time slice.
-};
-
-/// Memory Slice capability
-struct s3k_memory {
-	uint64_t type : 4;   ///< Type of capability, should be S3K_CAPTY_MEMORY
-	uint64_t lock : 1;   ///< Prevents creating of memory capabilities
-	uint64_t rwx : 3;    ///< Read, write and execute (reverse order)
-	uint64_t offset : 8; ///< 128 MiB offset of memory slice
-	uint64_t begin : 16; ///< Beginning of memory slice
-	uint64_t free : 16; ///< Beginning of available/unallocated memory slice
-	uint64_t end : 16;  ///< End of memory slice
-};
-
-/// PMP Frame capability
-struct s3k_pmp {
-	uint64_t type : 4;  ///< Type of capability, should be S3K_CAPTY_PMP
-	uint64_t addr : 52; ///< pmpaddr
-	uint64_t cfg : 8;   ///< pmpcfg
-};
-
-/// Monitor capability
-struct s3k_monitor {
-	uint64_t type : 4; ///< Type of capability, should be S3K_CAPTY_MONITOR
-	uint64_t _padd : 12; ///< Padding, should be zero
-	uint64_t begin : 16; ///< Beginning of monitored PIDs.
-	uint64_t free : 16;  ///< Beginning of available monitored PIDs.
-	uint64_t end : 16;   ///< End of monitred PIDs
-};
-
-/// Channel capability
-struct s3k_channel {
-	uint64_t type : 4;
-	uint64_t _padd : 12;
-	uint64_t begin : 16;
-	uint64_t free : 16;
-	uint64_t end : 16;
-};
-
-/// Socket capability
-struct s3k_socket {
-	uint64_t type : 4;
-	uint64_t _padd : 28;
-	uint64_t channel : 16;
-	uint64_t tag : 16;
-};
-
 /// Capability description
 union s3k_cap {
-	uint64_t type : 4;	    ///< Type of capability
-	uint64_t raw;		    ///< Capability as 64-bit word
-	struct s3k_time time;	    ///< As time slice capability
-	struct s3k_memory memory;   ///< As memory slice capability
-	struct s3k_pmp pmp;	    ///< As PMP frame capability
-	struct s3k_monitor monitor; ///< As monitor slice capability
-	struct s3k_channel channel; ///< As channel slice capability
-	struct s3k_socket socket;   ///< As socket capability
+	uint64_t type : 4; ///< Type of capability
+	uint64_t raw;	   ///< Capability as 64-bit word
+
+	struct {
+		uint64_t type : 4;   ///< Type of capability, should be
+				     ///< S3K_CAPTY_TIME.
+		uint64_t unused : 4; ///< Padding, should be zero.
+		uint64_t hartid : 8; ///< Hardware Thread ID.
+		uint64_t begin : 16; ///< Beginning of time slice.
+		uint64_t free : 16; ///< Beginning of available/unallocated time
+				    ///< slice.
+		uint64_t end : 16;  ///< End of time slice.
+	} time;
+
+	struct {
+		uint64_t type : 4; ///< Type of capability, should be
+				   ///< S3K_CAPTY_MEMORY
+		uint64_t lock : 1; ///< Prevents creating of memory capabilities
+		uint64_t rwx : 3;  ///< Read, write and execute (reverse order)
+		uint64_t offset : 8; ///< 128 MiB offset of memory slice
+		uint64_t begin : 16; ///< Beginning of memory slice
+		uint64_t free : 16;  ///< Beginning of available/unallocated
+				     ///< memory slice
+		uint64_t end : 16;   ///< End of memory slice
+	} memory;
+
+	struct {
+		uint64_t type : 4;  ///< Type of capability, should be
+				    ///< S3K_CAPTY_PMP
+		uint64_t addr : 52; ///< pmpaddr
+		uint64_t cfg : 8;   ///< pmpcfg
+	} pmp;
+
+	struct {
+		uint64_t type : 4; ///< Type of capability, should be
+				   ///< S3K_CAPTY_MONITOR
+		uint64_t unused : 12; ///< Padding, should be zero
+		uint64_t begin : 16;  ///< Beginning of monitored PIDs.
+		uint64_t free : 16; ///< Beginning of available monitored PIDs.
+		uint64_t end : 16;  ///< End of monitred PIDs
+	} monitor;
+
+	struct {
+		uint64_t type : 4;
+		uint64_t unused : 12;
+		uint64_t begin : 16;
+		uint64_t free : 16;
+		uint64_t end : 16;
+	} channel;
+
+	struct {
+		uint64_t type : 4;
+		uint64_t unused : 28;
+		uint64_t channel : 16;
+		uint64_t tag : 16;
+	} socket;
 };
 
 #ifdef _Static_assert
@@ -215,10 +213,7 @@ _Static_assert(sizeof(union s3k_cap) == 8, "sizeof(union s3k_cap) != 8");
 /// S3K Syscall Numbers
 enum s3k_syscall_nr {
 	// Capabilityless syscalls
-	S3K_SYSCALL_GETINFO, ///< Get information about current execution.
-	S3K_SYSCALL_GETREG,  ///< Get register value
-	S3K_SYSCALL_SETREG,  ///< Set register value
-	S3K_SYSCALL_YIELD,   ///< Yield remaining time slice
+	S3K_SYSCALL_PROC, ///< Process local system call.
 	// Capability syscalls
 	S3K_SYSCALL_GETCAP, ///< Get capability description
 	S3K_SYSCALL_MOVCAP, ///< Move capability
@@ -348,9 +343,12 @@ enum s3k_excpt s3k_revcap(uint64_t i);
  */
 enum s3k_excpt s3k_drvcap(uint64_t i, uint64_t j, union s3k_cap cap);
 
-enum s3k_excpt s3k_recv(void);
-enum s3k_excpt s3k_send(void);
-enum s3k_excpt s3k_sendrecv(void);
+enum s3k_excpt s3k_recv(uint64_t i, uint64_t buf[4], uint64_t cap_dest,
+			uint64_t *tag);
+enum s3k_excpt s3k_send(uint64_t i, uint64_t buf[4], uint64_t cap_src,
+			bool yield);
+enum s3k_excpt s3k_sendrecv(uint64_t i, uint64_t j, uint64_t buf[4],
+			    uint64_t cap_src, uint64_t cap_dest, uint64_t *tag);
 /**
  * @brief Monitor suspends a process.
  *

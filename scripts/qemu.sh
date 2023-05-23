@@ -46,6 +46,7 @@ echo -en "\
 set confirm off                           
 set pagination off                        
 file $KERNEL
+add-symbol-file build/monitor.elf 0x80010000
 $DEBUGFILES
 $BREAKPOINTS
 target remote localhost:1234              

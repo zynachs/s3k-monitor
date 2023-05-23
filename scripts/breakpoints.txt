@@ -1,2 +1,3 @@
 *0x80010000 
+*0x80020000
 handle_exception 
