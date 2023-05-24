@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 
+# Cleanup
+function cleanup() {
+    echo -e "Exiting... cleaning up:"
+    echo -e "  $ tmux kill-session -t $TMUX_SESSION"
+    tmux kill-session -t $TMUX_SESSION
+    echo -e "  $ rm -f $GDBINIT"
+    rm -f $GDBINIT   
+}
+
+trap cleanup EXIT
+
 KERNEL=$1
 PAYLOAD=$2
 GDBINIT=$(mktemp)
@@ -62,29 +73,28 @@ tmux split-pane -bfh -p75 "riscv64-unknown-elf-gdb -x $GDBINIT"
 
 # Print help message in tmux
 tmux new-window -n help 'echo -ne "\
-Welcome to the debugging live-session of s3k-monitor!
-=====================================================
+Welcome to the live debug session of s3k-monitor!
+=================================================
 
 Quick-start guide:
     * Right panel is GDB prompt, left panel is output from s3k.
-    * This is a tmux shell, to exit press Ctrl+d.
-    * To exit this message press q.
+    * This is a tmux shell, to exit press Ctrl + b + release keys + d.
+    * To leave this message press Ctrl + b + release keys + n, repeat combination to return to this message.
 
 Tips:
     * Mouse controls are enabled so you can click and scroll to navigate.
-    * Copy text by highlighting the desired text by clickling and draging.
-    * If the text in GDB becomes garbled, press Ctrl+x+a twice.
+    * Copy text by highlighting the desired text by clickling and draging (does not work in GDB tui mode). 
+    * If the text in GDB becomes garbled, press Ctrl + b + release keys + g.
+    * Restart kernel and debugging session by pressing Ctrl + b + release keys + r.
 
 " | less -'
 
 # Enable mouse controls in tmux
 tmux set -g mouse
 
-# Attack to tmux session
-tmux attach-session -t $TMUX_SESSION
+# Create a macros to restart session and refresh GDB screen
+tmux bind-key r respawn-pane -k -t 1 \\\; run-shell "sleep 1" \\\; respawn-pane -k -t 0
+tmux bind-key g send-keys C-x "a" \\\; send-keys C-x "a"
 
-# Cleanup
-echo -e "tmux kill-session -t $TMUX_SESSION"
-tmux kill-session -t $TMUX_SESSION
-echo -e "rm -f $GDBINIT"
-rm -f $GDBINIT
+# Attach to tmux session
+tmux attach-session -t $TMUX_SESSION
