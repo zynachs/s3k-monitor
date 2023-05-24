@@ -47,19 +47,21 @@ This repository consists of mainly two applications: *monitor* and *app*. The mo
 | [app/](./app/) | Contains files which are unique to app. |
 | [app/app.c](./app/app.c) | Source file. |
 | [app/app.lds](./app/app.lds) | Linker script. |
-| [common/](./common/) | Contains source files, header files and assembly files which are shared between monitor and app. | 
+| [common/](./common/) | Contains assembly files which are shared between monitor and app. | 
+| [inc/](./inc/) | Contains header files which are shared between monitor and app. | 
+| [lib/](./lib/) | Contains header archive files which are shared between monitor and app. | 
+| [misc/config.h](./misc/config.h) | Header file for compiling the kernel |
+| [misc/default.ld](./misc/default.ld) | Default linker script. Does not comply with PMP. |
 | [monitor/](./monitor/) | Contains files which are unique to monitor |
 | [monitor/monitor.c](./monitor/monitor.c) | Source file. |
 | [monitor/monitor.lds](./monitor/monitor.lds) | Linker script. |
 | [scripts/](./scripts/) | Contains helpful tools |
 | [scripts/payloads/](./scripts/payloads/) | Contains C source files which are used by genpayload.sh to create raw machine code. |
 | [scripts/breakpoints.txt](./scripts/breakpoints.txt) | Text file containing one breakpoint per line GDB which is executed in qemu.sh |
-| [scripts/genpayload.sh](./scripts/genpayload.sh) | Bash script which generates a comma-seperated list of raw machine code in 0x notation from a C source file. |
-| [scripts/qemu.sh](./scripts/qemu.sh) | Bash script which emulates the kernel, monitor and app with qemu and spawns a gdb live debugging prompt. |
+| [scripts/genpayload.sh](./scripts/genpayload.sh) | Bash script which generates a comma-seperated list of raw machine code in 0x notation from C source files in scripts/payloads/. |
+| [scripts/qemu.sh](./scripts/qemu.sh) | Bash script which emulates the kernel, monitor and app with qemu and spawns a gdb live debugging prompt. Utilizes tmux.|
 | [scripts/riscvpmp.py](./scripts/riscvpmp.py) | Python script which translates a pmpaddr to start and end address. |
 | [scripts/riscvpmpinv.py](./scripts/riscvpmpinv.py) | Python script which translates a start and end address to a pmpaddr. |
-| [config.h](./config.h) | Header file for compiling the kernel |
-| [config.mk](./config.mk) | Configuration file for all Makefiles |
 | [Makefile](./Makefile) | Root Makefile, includes all other makefiles. Used to compile and execute the repository files |
 | [project-proposal.md](./project-proposal.md) | Original project proposal, 2023-03-02. |
 
@@ -76,7 +78,7 @@ This repository consists of mainly two applications: *monitor* and *app*. The mo
 | GNU Make | N/A | https://www.gnu.org/software/make/ | - |
 | RISC-V GNU Compiler Toolchain | tag: 2023.02.21 | https://github.com/riscv-collab/riscv-gnu-toolchain/releases/tag/2023.02.21 | Only tested the specified version and compiled from source. Version in package manager might be outdated. |
 | QEMU | Release: 7.2.0 | https://github.com/qemu/qemu/releases/tag/v7.2.0 | Only tested the specified version and compiled from source. Version in package manager might be outdated. |
-| kth-step/s3k | commit: 7e76f66 | https://github.com/kth-step/s3k/commit/7e76f668fd394e4eea94c281c9b66c8b934400a6 | Only tested and compatible with the specified commit of s3k. |
+| kth-step/s3k | commit: c0b7800 | https://github.com/kth-step/s3k/commit/c0b78005261f4725be71e103f70e61b0a8a2fee2 | Only tested and compatible with the specified commit of s3k. |
 
 
 ## Compiling and running
@@ -84,7 +86,7 @@ This repository consists of mainly two applications: *monitor* and *app*. The mo
 > This repository **DEPENDS** on and expects that it resides in the same parent folder as [kth-step/s3k](https://github.com/kth-step/s3k).
 
 1. Clone both repositories.
-2. Checkout step-kth/s3k to commit `7e76f668fd394e4eea94c281c9b66c8b934400a6`
+2. Checkout step-kth/s3k to commit `c0b78005261f4725be71e103f70e61b0a8a2fee2`
 3. Make sure that they are in the same parent folder.
 4. Cd into s3k-monitor
 
@@ -92,7 +94,7 @@ This repository consists of mainly two applications: *monitor* and *app*. The mo
 git clone https://github.com/zynachs/s3k-monitor.git
 git clone https://github.com/kth-step/s3k.git
 cd s3k
-git checkout 7e76f66
+git checkout c0b7800
 cd ../s3k-monitor
 ```
 
