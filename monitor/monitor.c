@@ -14,9 +14,6 @@
 #define MONITOR_PID 0
 #define APP_PID 1
 
-/*Allocate memory for app: */
-uint8_t app_mem[MEMSIZE] NOINIT ALIGNED(MEMSIZE);
-
 // Hypothetically provided at distribution of code/application.
 uint8_t signature[16] = {0x39, 0x25, 0x84, 0x1d, 0x02, 0xdc, 0x09, 0xfb, 0xdc, 0x11, 0x85, 0x97, 0x19, 0x6a, 0x0b, 0x32};
 
@@ -81,7 +78,6 @@ void load_app()
 
 void setup(void)
 {
-	alt_puts("inside setup");
 	/* Delete time on core 2 3 4. */
 	s3k_delcap(4);
 	s3k_delcap(5);
