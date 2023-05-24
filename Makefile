@@ -50,7 +50,13 @@ LDFLAGS=\
 	-Wl,--gc-sections,--no-dynamic-linker\
 	-Wstack-usage=2048 \
 	-fstack-usage\
-	-nostartfiles
+	-nostartfiles \
+	-Iinc
+
+# Objcopy flags. Used to deflate the size of the binary files since they will contain a lot of unused space.
+OCFLAGS=\
+	-R .bss \
+	-R .stack 
 
 # Build all
 all: options api $(BUILD)/monitor.bin $(BUILD)/s3k.elf debug
@@ -113,7 +119,7 @@ $(BUILD)/%.S.o: %.S
 
 # Monitor 
 SRCS=monitor/monitor.c monitor/capman.c monitor/payload.S common/start.S
-LDS=misc/default.ld
+LDS=monitor/monitor.lds
 DEPS+=$(patsubst %, $(BUILD)/%.d, $(SRCS))
 build/monitor/payload.S.o: build/app.bin
 $(BUILD)/monitor.elf: $(patsubst %, $(BUILD)/%.o, $(SRCS)) lib/libs3k.a
@@ -123,12 +129,12 @@ $(BUILD)/monitor.elf: $(patsubst %, $(BUILD)/%.o, $(SRCS)) lib/libs3k.a
 
 # App
 SRCS=app/app.c common/start.S
-LDS=misc/default.ld
+LDS=app/app.lds
 DEPS+=$(patsubst %, $(BUILD)/%.d, $(SRCS))
 $(BUILD)/app.elf: $(patsubst %, $(BUILD)/%.o, $(SRCS)) lib/libs3k.a
 	@mkdir -p ${@D}
 	@printf "CC $@\n"
-	@$(CC) ${CLIFLAG} ${TESTFLAG} $(LDFLAGS) -T$(LDS) -o $@ $^
+	@$(CC) ${CLIFLAG} $(LDFLAGS) -T$(LDS) -o $@ $^
 
 # Make kernel
 $(BUILD)/s3k.elf: ${CONFIG_H}
@@ -141,13 +147,14 @@ $(BUILD)/s3k.elf: ${CONFIG_H}
 # Create bin file from elf
 %.bin: %.elf
 	@printf "OBJCOPY $< $@\n"
-	@${OBJCOPY} -R .bss -R .stack -O binary $< $@
+	@${OBJCOPY} ${OCFLAGS} -O binary $< $@
 
-# Create assebly dump
+# Create assebly dump from elf
 %.da: %.elf
 	@printf "OBJDUMP $< $@\n"
 	@${OBJDUMP} -d $< > $@
 
+# Create debug file from elf
 %.dbg: %.elf
 	@printf "OBJCOPY $< $@\n"
 	@${OBJCOPY} --only-keep-debug $< $@

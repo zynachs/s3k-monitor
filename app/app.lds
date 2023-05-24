@@ -64,9 +64,7 @@ SECTIONS {
                 _ebss = ALIGN(8);
         } > APP
 
-        /* ASSERT ((SIZEOF(.bss) <= 4K), "ERROR: .bss region too large, will break PMP compatability.")*/
-
-        /* ASSERT (. >= 0x80030000, "ERROR: program too large. Exceeds 64K limit.")*/
+        ASSERT ((SIZEOF(.bss) <= 4K), "ERROR: .bss region too large, will break PMP compatability.")
 
         /* Program stack
            OFFSET: +0xF800 (62K)
@@ -84,5 +82,4 @@ SECTIONS {
         
         /* Hardcoded to start of .bss since it in the middle between .data and .bss */
         __global_pointer$ = _bss;
-        
 }
