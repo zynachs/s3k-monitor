@@ -112,7 +112,7 @@ $(BUILD)/%.S.o: %.S
 	@$(CC) $(ASFLAGS) -MMD -c -o $@ $<
 
 # Monitor 
-SRCS=monitor/monitor.c monitor/capman.c monitor/payload.S common/start.S
+SRCS=monitor/monitor.c monitor/capman.c monitor/payload.S common/start.S monitor/code-auth.c monitor/aes128.c
 LDS=misc/default.ld
 DEPS+=$(patsubst %, $(BUILD)/%.d, $(SRCS))
 build/monitor/payload.S.o: build/app.bin
