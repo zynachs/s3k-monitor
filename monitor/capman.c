@@ -1,6 +1,6 @@
 #include "capman.h"
 
-#include "../config.h"
+#include "../misc/config.h"
 #include "altio.h"
 #include "s3k.h"
 

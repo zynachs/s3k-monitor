@@ -1,3 +1,5 @@
-*0x80010000 
-*0x80020000
-handle_exception 
+handle_exception
+monitor.c:setup
+monitor.c:loop
+app.c:setup
+app.c:loop

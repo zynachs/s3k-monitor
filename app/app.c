@@ -7,18 +7,15 @@ char trapstack[4096];
 
 void traphandler(void) __attribute__((interrupt("user")));
 
-void trap_handler(void){
-    alt_printf("This is the trap handler! Returning to loop.\nPC: %x\nSP: %x\nCAUSE: %d\nVAL: %x\n", s3k_getreg(S3K_REG_EPC), s3k_getreg(S3K_REG_ESP), s3k_getreg(S3K_REG_ECAUSE), s3k_getreg(S3K_REG_EVAL));
-    
-    s3k_setreg(S3K_REG_EPC, (uint64_t)0x80020000);
-    s3k_setreg(S3K_REG_ESP, (uint64_t)0x80030000);
+void trap_handler(void)
+{
 }
 
 void setup(void)
 {  
     /* Setup trap handler */
-    s3k_setreg(S3K_REG_TPC, (uint64_t)trap_handler);
-    s3k_setreg(S3K_REG_TSP, (uint64_t)trapstack + sizeof(trapstack));
+    //s3k_setreg(S3K_REG_TPC, (uint64_t)trap_handler);
+    //s3k_setreg(S3K_REG_TSP, (uint64_t)trapstack + sizeof(trapstack));
 
     #if defined __TEST1 || defined __TEST2  
     /* Compiled malicious machine code, created using "make genpayload" */
@@ -84,6 +81,6 @@ void setup(void)
 
 void loop(void)
 {
-    alt_puts("This is app loop! test");
+    alt_puts("This is app loop!");
     s3k_yield();
 }
