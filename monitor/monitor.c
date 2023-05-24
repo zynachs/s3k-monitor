@@ -5,6 +5,9 @@
 #include "uart.h"
 #include "printf.h"
 #include "payload.h"
+#include "code-auth.h"
+#include "altio.h"
+#include "aes128.h"
 
 #define NOINIT	      __attribute__((section(".noinit")))
 #define ALIGNED(x)    __attribute__((aligned(x)))
@@ -27,39 +30,28 @@
 #define CAP_PMP_UART 9
 #define CAP_PMP_APP  20
 
-/*
-Milestone A:
-Load app from binary, assign memory and copy to memory.
 
-	char app_mem[2][MEMSIZE] NOINIT ALIGNED(MEMSIZE);
-	and 
-	memcpy(app_mem[0], app_bin, app_bin_len)
- 
-milestone B:
-code validation: run binary through hash function and compare to whitelist.
-if true:
-	assign memory
-	
-	char app_mem[2][MEMSIZE] NOINIT ALIGNED(MEMSIZE);
-	and 
-	memcpy(app_mem[0], app_bin, app_bin_len)
-
-*/
 
 /*Allocate memory for app: */
-char app_mem[MEMSIZE] NOINIT ALIGNED(MEMSIZE);
+uint8_t app_mem[MEMSIZE] NOINIT ALIGNED(MEMSIZE);
+
+// Hypothetically provided at distribution of code/application.
+uint8_t signature[16] = {0x39, 0x25, 0x84, 0x1d, 0x02, 0xdc, 0x09, 0xfb, 0xdc, 0x11, 0x85, 0x97, 0x19, 0x6a, 0x0b, 0x32};
+
 
 void load_app()
 {
-	/*function call to verify app: */
-
+	alt_puts("inside load_app");
 	/*Copy app-binary to allocated memory: */
+	/*alt_printf("%d", app_bin_len); 6162*/
 	memcpy(app_mem, app_bin, app_bin_len);
 }
 	
 
 void setup_app(void)
 {
+	alt_puts("inside setup_app");
+
 	/* Set PC */ 
 	s3k_msetreg(CAP_MON, APP_PID, S3K_REG_PC, 0x80020000);
 	
@@ -119,6 +111,7 @@ void setup_app(void)
 
 void setup_monitor(void) 
 {
+	alt_puts("inside setup_monitor");
 	/* Setup monitor with capabilities to UART memory */
 	uint64_t uartaddr = s3k_pmp_napot_addr(0x10000000, 0x10000100);
 	uint64_t appaddr = s3k_pmp_napot_addr(0x80020000, 0x80030000);
@@ -147,14 +140,22 @@ void setup_monitor(void)
 
 void setup(void)
 {
+	alt_puts("inside setup");
 	/* Delete time on core 2 3 4. */
 	s3k_delcap(CAP_TIME1);
 	s3k_delcap(CAP_TIME2);
 	s3k_delcap(CAP_TIME3);
 
-	/* Setup app and monitor */
+	/* Setup monitor */
 	setup_monitor();
+
+	/* Load app to allocated memory */
 	load_app();
+
+	/* Verify app with CBC-MAC*/
+	code_auth(app_mem, signature, app_bin_len);
+
+	/* Setup app */
 	setup_app();
 
 	/* Start app */
@@ -165,6 +166,7 @@ void setup(void)
 
 void loop(void)
 {
+
 	uart_puts("This is monitor loop!");
 	/* Does nothing, tells the kernel that it is done. */
 	s3k_yield();
