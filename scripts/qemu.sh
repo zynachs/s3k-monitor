@@ -11,10 +11,13 @@ function cleanup() {
 
 trap cleanup EXIT
 
+SOURCE_DIR=$(dirname -- "${BASH_SOURCE[0]}")
 KERNEL=$1
-PAYLOAD=$2
+MONITOR=$2
+MONITOR_DBG=${MONITOR%.*}.dbg
+APP_DBG=$SOURCE_DIR/../build/app.dbg
 GDBINIT=$(mktemp)
-BREAKPOINT_FILE=$(dirname -- "${BASH_SOURCE[0]}")/breakpoints.txt
+BREAKPOINT_FILE=$SOURCE_DIR/breakpoints.txt
 TMUX_SESSION=s3k-monitor
 
 if ! command -v tmux &> /dev/null; then
@@ -27,13 +30,10 @@ if [ -z "$KERNEL" ]; then
     exit 1
 fi
 
-if [ -z "$PAYLOAD" ]; then
-    echo "ERROR: Arg 2, PAYLOAD1 elf, missing."
+if [ -z "$MONITOR" ]; then
+    echo "ERROR: Arg 2, MONITOR elf, missing."
     exit 1
 fi
-
-# Finds all files ending with .dbg
-# DEBUGFILES=$(for f in $(find build/ -type f -name *.dbg); do echo -e "add-symbol-file $f"; done)                       
 
 # Initial breakpoints. To add a new breakpoint, append a line before the last "EOL". Only one breakpoint per line. 
 BREAKPOINTS=$(sed -e 's/^\s*/b /' < $BREAKPOINT_FILE)
@@ -43,13 +43,12 @@ echo -en "\
 set confirm off                           
 set pagination off                        
 file $KERNEL
-add-symbol-file build/monitor.dbg 0x80010000
-add-symbol-file build/app.dbg 0x80020000
+add-symbol-file $MONITOR_DBG 0x80010000
+add-symbol-file $APP_DBG 0x80020000
 $BREAKPOINTS
 target remote localhost:1234              
 layout split                              
 fs cmd
-continue
 " > $GDBINIT
 
 # Start qemu in the background
@@ -63,7 +62,7 @@ tmux new-session -d -s $TMUX_SESSION -n debug \
         -kernel $KERNEL \
         -s \
         -S \
-        -device loader,file=$PAYLOAD,addr=0x80010000"
+        -device loader,file=$MONITOR,addr=0x80010000"
         #-serial tcp:localhost:4321,server,nowait
 
 sleep 1
