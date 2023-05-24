@@ -8,6 +8,9 @@
 # Binary files
 *.bin
 
+# Archive files
+*.a
+
 # Debug files
 *.su
 *.dbg

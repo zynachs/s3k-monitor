@@ -4,6 +4,6 @@
 .section .rodata.app
 
 app_bin:
-	.incbin "../app/app.bin"
+	.incbin "build/app.bin"
 app_bin_len:
 	.quad . - app_bin

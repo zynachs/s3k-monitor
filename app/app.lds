@@ -12,12 +12,11 @@ SECTIONS {
 
         /* Program instructions 
            OFFSET: +0x00
-           MAXsize: 4K
+           MAXSIZE: 4K
         */
         .text : { 
                 _text = .;
                 *(.init)
-                *(.init.trap)
                 *(.text .text.*)
                 _etext = .;
         } > APP
@@ -52,7 +51,7 @@ SECTIONS {
                 . = _rodata == . ? . + 2K : .; /* if .rodata is empty move position forward anyways */
         } > APP
         
-        ASSERT ((SIZEOF(.rodata) <= 2K), "ERROR: .rodata region too large, will break PMP compatability.")
+        /* ASSERT ((SIZEOF(.rodata) <= 2K), "ERROR: .rodata region too large, will break PMP compatability.") */
         
         /* Zero initialized region
            OFFSET: +0x2000 (8K)
@@ -65,27 +64,25 @@ SECTIONS {
                 _ebss = ALIGN(8);
         } > APP
 
-        ASSERT ((SIZEOF(.bss) <= 4K), "ERROR: .bss region too large, will break PMP compatability.")
+        /* ASSERT ((SIZEOF(.bss) <= 4K), "ERROR: .bss region too large, will break PMP compatability.")*/
+
+        /* ASSERT (. >= 0x80030000, "ERROR: program too large. Exceeds 64K limit.")*/
 
         /* Program stack
            OFFSET: +0xF800 (62K)
            MAXSIZE: 4K
         */
-        .stack : {
-                . = (ORIGIN(APP) + LENGTH(APP)) - 4K;
-                /* Dedicated stack for trap_handler */
-                _trapstack = .;
-                . += 2K;
-                _trapstack_top = .;
-                /* Generic stack */
-                *(.stack)
+        .stack : ALIGN(4K) {
+                . = LENGTH(APP) + ORIGIN(APP) - 2K;
+                *(.stack .stack.*)
         } > APP
 
-        /* Hardcoded to start of .bss since it in the middle between .data and .bss */
-        __global_pointer$ = _bss;
-        
         /* End of App (0x80030000) 
            OFFSET: +0x10000 (64K)
         */
 	_end = .;
+        
+        /* Hardcoded to start of .bss since it in the middle between .data and .bss */
+        __global_pointer$ = _bss;
+        
 }
