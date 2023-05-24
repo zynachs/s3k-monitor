@@ -14,3 +14,6 @@
 # Debug files
 *.su
 *.dbg
+
+# Files to be ignored
+inc/s3k.h
