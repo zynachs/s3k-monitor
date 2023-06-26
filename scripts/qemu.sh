@@ -49,6 +49,7 @@ $BREAKPOINTS
 target remote localhost:1234              
 layout split                              
 fs cmd
+continue
 " > $GDBINIT
 
 # Start qemu in the background
