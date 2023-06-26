@@ -50,7 +50,13 @@ LDFLAGS=\
 	-Wl,--gc-sections,--no-dynamic-linker\
 	-Wstack-usage=2048 \
 	-fstack-usage\
-	-nostartfiles
+	-nostartfiles \
+	-Iinc
+
+# Objcopy flags. Used to deflate the size of the binary files since they will contain a lot of unused space.
+OCFLAGS=\
+	-R .bss \
+	-R .stack 
 
 # Build all
 all: options api $(BUILD)/monitor.bin $(BUILD)/s3k.elf debug
@@ -59,6 +65,7 @@ all: options api $(BUILD)/monitor.bin $(BUILD)/s3k.elf debug
 options:
 	@printf "build options:\n"
 	@printf "CC       = ${CC}\n"
+	@printf "OCFLAGS  = ${OCFLAGS}\n"
 	@printf "LDFLAGS  = ${LDFLAGS}\n"
 	@printf "ASFLAGS  = ${ASFLAGS}\n"
 	@printf "CFLAGS   = ${CFLAGS}\n"
@@ -112,23 +119,23 @@ $(BUILD)/%.S.o: %.S
 	@$(CC) $(ASFLAGS) -MMD -c -o $@ $<
 
 # Monitor 
-SRCS=monitor/monitor.c monitor/capman.c monitor/payload.S common/start.S
-LDS=misc/default.ld
-DEPS+=$(patsubst %, $(BUILD)/%.d, $(SRCS))
+MONITOR_SRCS=monitor/monitor.c monitor/capman.c monitor/payload.S common/start.S
+MONITOR_LDS=monitor/monitor.lds
+MONITOR_DEPS+=$(patsubst %, $(BUILD)/%.d, $(MONITOR_SRCS))
 build/monitor/payload.S.o: build/app.bin
-$(BUILD)/monitor.elf: $(patsubst %, $(BUILD)/%.o, $(SRCS)) lib/libs3k.a
+$(BUILD)/monitor.elf: $(patsubst %, $(BUILD)/%.o, $(MONITOR_SRCS)) lib/libs3k.a
 	@mkdir -p ${@D}
 	@printf "CC $@\n"
-	@$(CC) ${CLIFLAG} $(LDFLAGS) -T$(LDS) -o $@ $^
+	@$(CC) ${CLIFLAG} $(LDFLAGS) -T$(MONITOR_LDS) -o $@ $^
 
 # App
-SRCS=app/app.c common/start.S
-LDS=misc/default.ld
-DEPS+=$(patsubst %, $(BUILD)/%.d, $(SRCS))
-$(BUILD)/app.elf: $(patsubst %, $(BUILD)/%.o, $(SRCS)) lib/libs3k.a
+APP_SRCS=app/app.c common/start.S
+APP_LDS=app/app.lds
+APP_DEPS+=$(patsubst %, $(BUILD)/%.d, $(APP_SRCS))
+$(BUILD)/app.elf: $(patsubst %, $(BUILD)/%.o, $(APP_SRCS)) lib/libs3k.a
 	@mkdir -p ${@D}
 	@printf "CC $@\n"
-	@$(CC) ${CLIFLAG} ${TESTFLAG} $(LDFLAGS) -T$(LDS) -o $@ $^
+	@$(CC) ${CLIFLAG} $(LDFLAGS) -T$(APP_LDS) -o $@ $^
 
 # Make kernel
 $(BUILD)/s3k.elf: ${CONFIG_H}
@@ -141,13 +148,14 @@ $(BUILD)/s3k.elf: ${CONFIG_H}
 # Create bin file from elf
 %.bin: %.elf
 	@printf "OBJCOPY $< $@\n"
-	@${OBJCOPY} -R .bss -R .stack -O binary $< $@
+	@${OBJCOPY} ${OCFLAGS} -O binary $< $@
 
-# Create assebly dump
+# Create assebly dump from elf
 %.da: %.elf
 	@printf "OBJDUMP $< $@\n"
 	@${OBJDUMP} -d $< > $@
 
+# Create debug file from elf
 %.dbg: %.elf
 	@printf "OBJCOPY $< $@\n"
 	@${OBJCOPY} --only-keep-debug $< $@

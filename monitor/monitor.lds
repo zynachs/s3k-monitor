@@ -5,7 +5,6 @@ ENTRY(_start)
 /* Definition of memory region */
 MEMORY {
         MONITOR (rwaxi) : ORIGIN  = 0x80010000, LENGTH = 64K
-        /* NOINIT (rwaxi) : ORIGIN = 0x80020000, LENGTH = 64K */
 }
 
 SECTIONS {
@@ -19,6 +18,7 @@ SECTIONS {
                 _text = .;
                 *(.init)
                 *(.text .text.*)
+                . = ALIGN(8K);
                 _etext = .;
         } > MONITOR
 
@@ -33,8 +33,9 @@ SECTIONS {
                 *(.data .data.*)
                 _sdata = .;
                 *(.sdata .sdata.*)
-                _edata = .;
                 . = _data == . ? . + 8K : .; /* if .data is empty move position forward anyways */
+                . = ALIGN(8K);
+                _edata = .;
         } > MONITOR
         
         ASSERT ((SIZEOF(.data) <= 8K), "ERROR: .data region too large, will break PMP compatability.")
@@ -48,8 +49,9 @@ SECTIONS {
                 *(.rodata .rodata.*)
                 _srodata = .;
                 *(.srodata .srodata*)
-                _erodata = .;
                 . = _rodata == . ? . + 16K : .; /* if .rodata is empty move position forward anyways */
+                . = ALIGN(16K);
+                _erodata = .;
         }
 
         ASSERT ((SIZEOF(.rodata) <= 16K), "ERROR: .rodata region too large, will break PMP compatability.")
@@ -62,18 +64,30 @@ SECTIONS {
                 _bss = .;
                 *(.sbss .sbss.*)
                 *(.bss .bss.*)
-                _ebss = ALIGN(8);
+                . = ALIGN(4K);
+                _ebss = .;
         } > MONITOR
         
         ASSERT ((SIZEOF(.bss) <= 4K), "ERROR: .bss region too large, will break PMP compatability.")
+        
+        /* Unused space between .bss and .stack
+           OFFSET: +0x9000 (36K)
+           MAXSIZE: 26K
+        */
+        .limbo : {
+                _limbo = .;
+                . = LENGTH(MONITOR) + ORIGIN(MONITOR) - 2K;
+                _elimbo = .;
+        } > MONITOR
 
         /* Program stack
            OFFSET: +0xF800 (62K)
            MAXSIZE: 2K
         */
-        .stack : ALIGN(4K) {
-                . = LENGTH(MONITOR) + ORIGIN(MONITOR) - 2K;
+        .stack : {
+                _stack = .;
                 *(.stack .stack.*)
+                _stack_top = .;
         } > MONITOR
         
         /* End of monitor (0x80020000) 
@@ -81,20 +95,6 @@ SECTIONS {
         */
 	_end = .;
 
-        /* Reserved for app 
-           OFFSET: +0x10000 (64K)
-           MAXSIZE: 64K
-        */
-        /*
-        .noinit : {
-                _noinit = .;
-                *(.noinit .noinit.*)
-                _enoinit = .;
-        } > NOINIT
-
-        ASSERT ((SIZEOF(.noinit) <= 64K), "ERROR: .noinit region too large, space not accounted for.")
-        */
-
-        /* Hardcoded to start of .bss since it in the middle between .data and .bss */
-        __global_pointer$ = _bss;
+        /* Hardcoded since sections are hardcoded */
+        __global_pointer$ = _bss - 12K;
 }

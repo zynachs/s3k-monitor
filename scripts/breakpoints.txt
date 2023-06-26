@@ -1,3 +1,4 @@
+*0x80010000
 handle_exception
 monitor.c:setup
 monitor.c:loop
