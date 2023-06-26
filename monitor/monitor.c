@@ -5,17 +5,15 @@
 #include "payload.h"
 #include "ring_buffer.h"
 #include "s3k.h"
-#include "code-auth.h"
-#include "aes128.h"
+#include "../inc/aes128.c"
+#include "../inc/code-auth.c"
 
 #include <stdbool.h>
 #include <string.h>
 
 #define MONITOR_PID 0
 #define APP_PID 1
-
-// Hypothetically provided at distribution of code/application.
-uint8_t signature[16] = {0x39, 0x25, 0x84, 0x1d, 0x02, 0xdc, 0x09, 0xfb, 0xdc, 0x11, 0x85, 0x97, 0x19, 0x6a, 0x0b, 0x32};
+#define signature_len 0x80
 
 uint8_t pmpcaps[8] = { 0 };
 
@@ -71,8 +69,7 @@ void load_app()
 	pmpcaps[1] = 0x20;
 	capman_setpmp(pmpcaps);
 
-	/*Copy app-binary to allocated memory: */
-	/*alt_printf("%d", app_bin_len); 6162*/
+	/* Copy app-binary to allocated memory: */
 	memcpy((void *)APP_BASE, app_bin, app_bin_len);
 }
 
@@ -92,22 +89,32 @@ void setup(void)
 	/* Setup memory and time */
 	setup_memory_slices();
 	setup_time_slices();
-	
+
 	/* Load app to allocated memory */
 	load_app();
 
-	/* Verify app with CBC-MAC*/
-	code_auth((void *)APP_BASE, signature, app_bin_len);
+	// Holder for calculating MAC signature
+	uint8_t mac[16];
 
-	/* Setup app */
-	setup_app();
+	/* Calculate mac signature of app */
+	int* signature = calc_sig((void *)APP_BASE, app_bin_len, mac);
 
-	s3k_yield();
+	/* Authentication, compares provided signature with calculated signature and setup/start app if successfull */
+	if (comp_sig((void *)APP_BASE, signature) == 1){
 
-	/* Start app */
-	alt_puts("Resuming app...");
-	capman_mresume(APP_PID);
-	s3k_yield();
+		/* Setup app */
+		setup_app();
+
+		s3k_yield();
+
+		/* Start app */
+		alt_puts("Resuming app...");
+		capman_mresume(APP_PID);
+		s3k_yield();
+		
+	}else{
+		alt_puts("authentication failed");
+	}
 }
 
 void loop(void)
