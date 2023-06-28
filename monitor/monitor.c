@@ -5,15 +5,15 @@
 #include "payload.h"
 #include "ring_buffer.h"
 #include "s3k.h"
-#include "../inc/aes128.c"
-#include "../inc/code-auth.c"
+#include "../inc/aes128.h"
+#include "../inc/code-auth.h"
 
 #include <stdbool.h>
 #include <string.h>
 
 #define MONITOR_PID 0
 #define APP_PID 1
-#define signature_len 0x80
+#define signature_size 16 //16B
 
 uint8_t pmpcaps[8] = { 0 };
 
@@ -61,9 +61,7 @@ void setup_app(void)
 }
 
 void load_app()
-{
-	alt_puts("inside load_app");
-	
+{	
 	/* Give monitor access to APP memory */
 	capman_derive_pmp(0x20, APP_BASE, APP_BASE + 0x10000, S3K_RWX);
 	pmpcaps[1] = 0x20;
@@ -94,10 +92,12 @@ void setup(void)
 	load_app();
 
 	// Holder for calculating MAC signature
-	uint8_t mac[16];
+	uint8_t signature[16];
 
-	/* Calculate mac signature of app */
-	int* signature = calc_sig((void *)APP_BASE, app_bin_len, mac);
+	/* Calculate mac of app and store in signature */
+	uint8_t *ptr_signature = (void *)APP_BASE + signature_size;
+
+	calc_sig(ptr_signature, app_bin_len - signature_size, signature);
 
 	/* Authentication, compares provided signature with calculated signature and setup/start app if successfull */
 	if (comp_sig((void *)APP_BASE, signature) == 1){

@@ -1,5 +1,4 @@
 #include "aes128.h"
-
 #include <stdint.h>
 
 static const uint32_t rc[10] = {
