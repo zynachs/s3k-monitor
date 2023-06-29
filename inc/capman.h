@@ -1,11 +1,31 @@
-#include "capman.h"
-
 #include "../misc/config.h"
 #include "altio.h"
 #include "s3k.h"
 
 #include <stdbool.h>
 #include <stdint.h>
+
+void capman_init(void);
+union s3k_cap capman_get(uint64_t idx);
+bool capman_move(uint64_t src, uint64_t dst);
+bool capman_delcap(uint64_t idx);
+void capman_update(void);
+void capman_dump(union s3k_cap);
+void capman_dump_all(void);
+int capman_find_free(void);
+void capman_getpmp(uint8_t pmp[8]);
+void capman_setpmp(uint8_t pmp[8]);
+static int capman_find_existing_pmp(uint64_t begin, uint64_t end);
+int capman_update_pmp(int tidx, uint64_t begin, uint64_t end, uint64_t rwx);
+bool capman_derive_mem(int idx, uint64_t begin, uint64_t end, uint64_t rwx);
+bool capman_derive_time(int idx, uint64_t hartid, uint64_t begin, uint64_t end);
+bool capman_derive_pmp(int idx, uint64_t begin, uint64_t end, uint64_t rwx);
+bool capman_mresume(uint64_t pid);
+bool capman_msuspend(uint64_t pid);
+bool capman_mgivecap(uint64_t pid, uint64_t src, uint64_t dest);
+bool capman_mtakecap(uint64_t pid, uint64_t src, uint64_t dest);
+bool capman_msetreg(uint64_t pid, uint64_t reg, uint64_t val);
+bool capman_mgetreg(uint64_t pid, uint64_t reg, uint64_t *val);
 
 static uint64_t ncaps;
 static union s3k_cap caps[NCAP];
@@ -22,9 +42,10 @@ union s3k_cap capman_get(uint64_t idx)
 
 bool capman_move(uint64_t src, uint64_t dst)
 {
-	if (caps[src].raw == 0 || caps[dst].raw != 0)
+	if (caps[src].raw == 0 || caps[dst].raw != 0) {
 		return false;
-	if (s3k_movcap(src, dst) != S3K_EXCPT_NONE) {
+	}
+	if (s3k_movcap(src, dst) == S3K_EXCPT_NONE) {
 		caps[dst].raw = caps[src].raw;
 		caps[src].raw = 0;
 		return true;
@@ -170,6 +191,45 @@ void capman_getpmp(uint8_t pmp[8])
 	for (int i = 0; i < 8; ++i) {
 		pmp[i] = (pmpreg >> (i * 8));
 	}
+}
+
+/* New */
+
+static int capman_find_existing_pmp(uint64_t begin, uint64_t end)
+{
+	uint64_t tbegin;
+	uint64_t tend;
+	union s3k_cap pmp;
+
+	for (int i = 0; i < NCAP; i++) {
+		pmp = capman_get(i);
+		if (pmp.type != S3K_CAPTY_PMP) continue;
+		tbegin = s3k_pmp_napot_begin(pmp.pmp.addr);
+		tend = s3k_pmp_napot_end(pmp.pmp.addr);
+		if (tbegin != begin && tend != end) continue;
+		return i;
+	}
+
+	return -1;
+}
+
+int capman_update_pmp(int tidx, uint64_t begin, uint64_t end, uint64_t rwx)
+{
+	uint64_t idx;
+
+	// find index of matching pmp
+	if ((idx = capman_find_existing_pmp(begin, end)) == -1) return 1;
+	
+	// derive new pmp
+	if (!(capman_derive_pmp(tidx, begin, end, rwx))) return 2;
+	
+	// delete old pmp
+	if (!(capman_delcap(idx))) return 3;
+
+	// move new pmp into index of old
+	if (!(capman_move(tidx, idx))) return 4;
+
+	return 0;
 }
 
 bool capman_derive_pmp(int idx, uint64_t begin, uint64_t end, uint64_t rwx)

@@ -1,4 +1,3 @@
-#pragma once
 #include <stdarg.h>
 
 #define UART_BASE ((volatile unsigned char *)0x10000000)

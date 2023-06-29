@@ -3,7 +3,6 @@
 #include "base.h"
 #include "capman.h"
 #include "payload.h"
-#include "ring_buffer.h"
 #include "s3k.h"
 
 #include <stdbool.h>
@@ -12,13 +11,20 @@
 #define MONITOR_PID 0
 #define APP_PID 1
 
+struct memory_section {
+	char section[8];
+	uint8_t rwx;
+	uint64_t size;
+};
+
 uint8_t pmpcaps[8] = { 0 };
 
 void setup_memory_slices(void) 
 {
 	/* App memory */
-	capman_derive_mem(0x10, APP_BASE, APP_BASE + 0x10000, S3K_RWX);
+	capman_derive_mem(0x10, APP_BASE, APP_BASE + APP_SIZE, S3K_RWX);
 
+	/* Delete access to remaining memory */
 	capman_delcap(0x1);
 }
 
@@ -32,7 +38,7 @@ void setup_time_slices(void)
 void setup_monitor(void)
 {
 	/* Give monitor access to UART memory */
-	capman_derive_pmp(0x09, (uint64_t)UART_BASE, (uint64_t)UART_BASE + 0x8, S3K_RW);
+	capman_derive_pmp(0x09, (uint64_t)UART_BASE, (uint64_t)UART_BASE + 0x100, S3K_RW);
 	pmpcaps[2] = 0x09;
 
 	capman_setpmp(pmpcaps);
@@ -40,29 +46,75 @@ void setup_monitor(void)
 
 void setup_app(void) 
 {
+	/* Keep track of PMP capabilities created */
+	uint8_t npmp = 0; // number of PMP capabilities created
+	uint64_t ipmp = 0x0000000000000000; // byte mask of indices to PMP capabilities
+
+	/* An array of values of the size of memory sections. Could be improved by being loaded dynamically. */
+	struct memory_section memory_sections[] = {
+		{"text", S3K_RX, CHUNK_SIZE*2}, /* NOTE: 8K */
+		{"data", S3K_RW, CHUNK_SIZE},
+		{"rodata", S3K_R, CHUNK_SIZE},
+		{"bss", S3K_RW, CHUNK_SIZE},
+		{"heap0", S3K_RX, CHUNK_SIZE}, /* placed directly after .bss*/
+		{"heap1", S3K_R, CHUNK_SIZE}, /* Not used, specified by CHUNK_MASK in base.h */
+		{"heap2", S3K_R, CHUNK_SIZE}, /* Not used, specified by CHUNK_MASK in base.h */ 
+		{"heap3", S3K_R, CHUNK_SIZE}, /* Not used, specified by CHUNK_MASK in base.h */
+		{"heap4", S3K_R, CHUNK_SIZE}, /* Not used, specified by CHUNK_MASK in base.h */
+		{"heap5", S3K_R, CHUNK_SIZE}, /* Not used, specified by CHUNK_MASK in base.h */
+		{"heap6", S3K_R, CHUNK_SIZE}, /* Not used, specified by CHUNK_MASK in base.h */
+		{"heap7", S3K_R, CHUNK_SIZE}, /* Not used, specified by CHUNK_MASK in base.h */
+		{"heap8", S3K_R, CHUNK_SIZE}, /* Not used, specified by CHUNK_MASK in base.h */
+		{"heap9", S3K_RX, CHUNK_SIZE}, /* placed directly before .stack*/
+		{"stack", S3K_RW, CHUNK_SIZE}
+	};
+
 	/* Give monitor access to APP memory */
-	capman_derive_pmp(0x20, APP_BASE, APP_BASE + 0x10000, S3K_RWX);
+	capman_derive_pmp(0x20, APP_BASE, APP_BASE + APP_SIZE, S3K_RW);
 	pmpcaps[1] = 0x20;
 	capman_setpmp(pmpcaps);
 
 	/* Copy over binary */
 	memcpy((void *)APP_BASE, app_bin, app_bin_len);
 
-	/* Give APP PMP slice */
-	capman_mgivecap(APP_PID, 0x20, 0x0);
-	/* Give APP memory slice */
-	capman_mgivecap(APP_PID, 0x10, 0x10);
+	/* Revoke access to app memory */
+	pmpcaps[1] = 0x0;
+	capman_setpmp(pmpcaps);
+	capman_delcap(0x20);
+
+	/* Derive PMP for each section and give to APP */
+	uint64_t temp_counter = APP_BASE;
+	for (uint8_t j = 0; j < (sizeof(memory_sections) / sizeof(memory_sections[0])) || temp_counter < app_bin_len; j++) {
+		/* If chunk is not set to be used do not create pmp for it */
+		if (!(CHUNK_MASK & (1 << j))) {
+			temp_counter += memory_sections[j].size;
+			continue;
+		}
+		capman_derive_pmp(0x20, temp_counter, temp_counter + memory_sections[j].size, memory_sections[j].rwx);
+		temp_counter += memory_sections[j].size;
+		capman_mgivecap(APP_PID, 0x20, npmp++);
+	} 
+
+	// Create capability to access UART memory, then give it to APP
+	capman_derive_pmp(0x20, (uint64_t)UART_BASE, (uint64_t)UART_BASE + 0x100, S3K_RW);
+	capman_mgivecap(APP_PID, 0x20, npmp++);
+	
+	/* Give APP memory slice but only RW */
+	capman_derive_mem(0x11, APP_BASE, APP_BASE + APP_SIZE, S3K_RW);
+	capman_mgivecap(APP_PID, 0x11, 0x10);
+
 	/* Give APP time slice */
 	capman_mgivecap(APP_PID, 0x18, 0x18);
 
-	// Create capability to access UART memory, then give it to APP
-	capman_derive_pmp(0x20, (uint64_t)UART_BASE, (uint64_t)UART_BASE + 0x8, S3K_RW);
-	capman_mgivecap(APP_PID, 0x20, 0x1);
-
 	/* Set APP PC */
 	capman_msetreg(APP_PID, S3K_REG_PC, APP_BASE);
+
 	/* Set APP PMP */
-	capman_msetreg(APP_PID, S3K_REG_PMP, 0x0100);
+	for (uint8_t j = (npmp - 1); j != 0xFF; j--) {
+		ipmp += j;
+		ipmp <<= (j != 0x00) ? 0x08 : 0x00; /* shift one byte position to the left when j is not 0x00  */
+	}
+	capman_msetreg(APP_PID, S3K_REG_PMP, ipmp);
 }
 
 void setup(void)
@@ -82,20 +134,27 @@ void setup(void)
 	setup_memory_slices();
 	setup_time_slices();
 
+	alt_printf("[MON]\tSetup\n");
+
 	/* Setup app */
 	setup_app();
 
 	s3k_yield();
 
 	/* Start app */
-	alt_puts("Resuming app...");
+	alt_printf("[MON]\tResuming app...\n");
 	capman_mresume(APP_PID);
 	s3k_yield();
 }
 
 void loop(void)
 {
-	alt_puts("This is monitor loop!");
+	static uint8_t iloop = 0;
+	alt_printf("[MON]\tLoop #0x%X\n", iloop);
+	switch (iloop++) {
+		default:
+	}
+
 	/* Does nothing, tells the kernel that it is done. */
 	s3k_yield();
 }

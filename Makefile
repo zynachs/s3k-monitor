@@ -1,4 +1,4 @@
-.POSIX:
+POSIX:
 
 export RISCV_PREFIX ?= riscv64-unknown-elf-
 export CC=${RISCV_PREFIX}gcc
@@ -8,18 +8,6 @@ export OBJDUMP=${RISCV_PREFIX}objdump
 BUILD?=build
 S3K_PATH?=../s3k
 CONFIG_H?=misc/config.h
-
-# flags passed in cmd
-CLIFLAG=
-ifeq (${CLIFLAG},debug)
-	CFLAGS+=-DDEBUG
-else ifeq (${CLIFLAG},test1)
-	CFLAGS+=-D__TEST1
-else ifeq (${CLIFLAG},test2)
-	CFLAGS+=-D__TEST2
-else ifeq (${CLIFLAG},test3)
-	CFLAGS+=-D__TEST3
-endif
 
 # Compilation flags
 CFLAGS+=\
@@ -119,20 +107,22 @@ $(BUILD)/%.S.o: %.S
 	@$(CC) $(ASFLAGS) -MMD -c -o $@ $<
 
 # Monitor 
-MONITOR_SRCS=monitor/monitor.c monitor/capman.c monitor/payload.S common/start.S
+MONITOR_SRCS=monitor/monitor.c monitor/payload.S common/start.S
+MONITOR_INC=inc/base.h inc/capman.h inc/altio.h misc/config.h inc/s3k.h
 MONITOR_LDS=monitor/monitor.lds
 MONITOR_DEPS+=$(patsubst %, $(BUILD)/%.d, $(MONITOR_SRCS))
 build/monitor/payload.S.o: build/app.bin
-$(BUILD)/monitor.elf: $(patsubst %, $(BUILD)/%.o, $(MONITOR_SRCS)) lib/libs3k.a
+$(BUILD)/monitor.elf: $(patsubst %, $(BUILD)/%.o, $(MONITOR_SRCS)) lib/libs3k.a $(MONITOR_INC)
 	@mkdir -p ${@D}
 	@printf "CC $@\n"
 	@$(CC) ${CLIFLAG} $(LDFLAGS) -T$(MONITOR_LDS) -o $@ $^
 
 # App
 APP_SRCS=app/app.c common/start.S
+APP_INC=inc/capman.h inc/altio.h inc/altmem.h inc/s3k.h
 APP_LDS=app/app.lds
 APP_DEPS+=$(patsubst %, $(BUILD)/%.d, $(APP_SRCS))
-$(BUILD)/app.elf: $(patsubst %, $(BUILD)/%.o, $(APP_SRCS)) lib/libs3k.a
+$(BUILD)/app.elf: $(patsubst %, $(BUILD)/%.o, $(APP_SRCS)) lib/libs3k.a $(APP_INC)
 	@mkdir -p ${@D}
 	@printf "CC $@\n"
 	@$(CC) ${CLIFLAG} $(LDFLAGS) -T$(APP_LDS) -o $@ $^
