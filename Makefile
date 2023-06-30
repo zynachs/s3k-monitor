@@ -115,7 +115,7 @@ $(BUILD)/%.S.o: %.S
 SRCS=monitor/monitor.c monitor/capman.c monitor/payload.S common/start.S inc/code-auth.c inc/aes128.c
 LDS=misc/default.ld
 DEPS+=$(patsubst %, $(BUILD)/%.d, $(SRCS))
-build/monitor/payload.S.o: build/app.bin
+build/monitor/payload.S.o: build/app_format.bin
 $(BUILD)/monitor.elf: $(patsubst %, $(BUILD)/%.o, $(SRCS)) lib/libs3k.a
 	@mkdir -p ${@D}
 	@printf "CC $@\n"
@@ -129,6 +129,11 @@ $(BUILD)/app.elf: $(patsubst %, $(BUILD)/%.o, $(SRCS)) lib/libs3k.a
 	@mkdir -p ${@D}
 	@printf "CC $@\n"
 	@$(CC) ${CLIFLAG} ${TESTFLAG} $(LDFLAGS) -T$(LDS) -o $@ $^
+
+build/app_format.bin: build/app.bin
+	gcc scripts/app_format.c -o scripts/app_format.o
+	python3 scripts/getsections.py
+	./scripts/app_format.o
 
 # Make kernel
 $(BUILD)/s3k.elf: ${CONFIG_H}

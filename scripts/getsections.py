@@ -3,9 +3,9 @@ from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import Section
 
 # open elf file
-appelf = ELFFile(open("../app/app.elf", 'rb'))
+appelf = ELFFile(open("build/app.elf", 'rb'))
 # open output file
-output = open('sectionsinfo.txt', 'w')
+output = open('scripts/sectionsinfo.txt', 'w')
 
 
 # naming sections

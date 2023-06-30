@@ -12,11 +12,11 @@ void main() {
 	int bufsize;
 
     // open app binary for reading
-    FILE* file_ptr = fopen("../app/app.bin", "rb");
+    FILE* file_ptr = fopen("build/app.bin", "rb");
 	// open file with sections info
-	FILE* sectioninfo_ptr = fopen("sectionsinfo.txt","r");
+	FILE* sectioninfo_ptr = fopen("scripts/sectionsinfo.txt","r");
 	// create and open new file, the formated binary
-	FILE* new_file_ptr = fopen("../app/app_format.bin", "wb");
+	FILE* new_file_ptr = fopen("build/app_format.bin", "wb");
 
 	if (file_ptr != 0){
     	// go to the end of binary

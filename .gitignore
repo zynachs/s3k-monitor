@@ -14,3 +14,6 @@
 # Debug files
 *.su
 *.dbg
+
+# Specific files
+scripts/sectionsinfo.txt
