@@ -15,5 +15,6 @@
 *.su
 *.dbg
 
-# Specific files
+# Files to be ignored
+inc/s3k.h
 scripts/sectionsinfo.txt

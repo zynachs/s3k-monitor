@@ -1,4 +1,4 @@
-.POSIX:
+POSIX:
 
 export RISCV_PREFIX ?= riscv64-unknown-elf-
 export CC=${RISCV_PREFIX}gcc
@@ -8,18 +8,6 @@ export OBJDUMP=${RISCV_PREFIX}objdump
 BUILD?=build
 S3K_PATH?=../s3k
 CONFIG_H?=misc/config.h
-
-# flags passed in cmd
-CLIFLAG=
-ifeq (${CLIFLAG},debug)
-	CFLAGS+=-DDEBUG
-else ifeq (${CLIFLAG},test1)
-	CFLAGS+=-D__TEST1
-else ifeq (${CLIFLAG},test2)
-	CFLAGS+=-D__TEST2
-else ifeq (${CLIFLAG},test3)
-	CFLAGS+=-D__TEST3
-endif
 
 # Compilation flags
 CFLAGS+=\
@@ -50,7 +38,13 @@ LDFLAGS=\
 	-Wl,--gc-sections,--no-dynamic-linker\
 	-Wstack-usage=2048 \
 	-fstack-usage\
-	-nostartfiles
+	-nostartfiles \
+	-Iinc
+
+# Objcopy flags. Used to deflate the size of the binary files since they will contain a lot of unused space.
+OCFLAGS=\
+	-R .bss \
+	-R .stack 
 
 # Build all
 all: options api $(BUILD)/monitor.bin $(BUILD)/s3k.elf debug
@@ -59,6 +53,7 @@ all: options api $(BUILD)/monitor.bin $(BUILD)/s3k.elf debug
 options:
 	@printf "build options:\n"
 	@printf "CC       = ${CC}\n"
+	@printf "OCFLAGS  = ${OCFLAGS}\n"
 	@printf "LDFLAGS  = ${LDFLAGS}\n"
 	@printf "ASFLAGS  = ${ASFLAGS}\n"
 	@printf "CFLAGS   = ${CFLAGS}\n"
@@ -112,23 +107,25 @@ $(BUILD)/%.S.o: %.S
 	@$(CC) $(ASFLAGS) -MMD -c -o $@ $<
 
 # Monitor 
-SRCS=monitor/monitor.c monitor/capman.c monitor/payload.S common/start.S inc/code-auth.c inc/aes128.c
-LDS=misc/default.ld
-DEPS+=$(patsubst %, $(BUILD)/%.d, $(SRCS))
+MONITOR_SRCS=monitor/monitor.c monitor/payload.S common/start.S
+MONITOR_INC=inc/base.h inc/capman.h inc/altio.h misc/config.h inc/s3k.h
+MONITOR_LDS=monitor/monitor.lds
+MONITOR_DEPS+=$(patsubst %, $(BUILD)/%.d, $(MONITOR_SRCS))
 build/monitor/payload.S.o: build/app_format.bin
-$(BUILD)/monitor.elf: $(patsubst %, $(BUILD)/%.o, $(SRCS)) lib/libs3k.a
+$(BUILD)/monitor.elf: $(patsubst %, $(BUILD)/%.o, $(MONITOR_SRCS)) lib/libs3k.a $(MONITOR_INC)
 	@mkdir -p ${@D}
 	@printf "CC $@\n"
-	@$(CC) ${CLIFLAG} $(LDFLAGS) -T$(LDS) -o $@ $^
+	@$(CC) ${CLIFLAG} $(LDFLAGS) -T$(MONITOR_LDS) -o $@ $^
 
 # App
-SRCS=app/app.c common/start.S
-LDS=misc/default.ld
-DEPS+=$(patsubst %, $(BUILD)/%.d, $(SRCS))
-$(BUILD)/app.elf: $(patsubst %, $(BUILD)/%.o, $(SRCS)) lib/libs3k.a
+APP_SRCS=app/app.c common/start.S
+APP_INC=inc/capman.h inc/altio.h inc/altmem.h inc/s3k.h
+APP_LDS=app/app.lds
+APP_DEPS+=$(patsubst %, $(BUILD)/%.d, $(APP_SRCS))
+$(BUILD)/app.elf: $(patsubst %, $(BUILD)/%.o, $(APP_SRCS)) lib/libs3k.a $(APP_INC)
 	@mkdir -p ${@D}
 	@printf "CC $@\n"
-	@$(CC) ${CLIFLAG} ${TESTFLAG} $(LDFLAGS) -T$(LDS) -o $@ $^
+	@$(CC) ${CLIFLAG} $(LDFLAGS) -T$(APP_LDS) -o $@ $^
 
 build/app_format.bin: build/app.bin
 	gcc scripts/app_format.c -o scripts/app_format.o
@@ -146,13 +143,14 @@ $(BUILD)/s3k.elf: ${CONFIG_H}
 # Create bin file from elf
 %.bin: %.elf
 	@printf "OBJCOPY $< $@\n"
-	@${OBJCOPY} -R .bss -R .stack -O binary $< $@
+	@${OBJCOPY} ${OCFLAGS} -O binary $< $@
 
-# Create assebly dump
+# Create assebly dump from elf
 %.da: %.elf
 	@printf "OBJDUMP $< $@\n"
 	@${OBJDUMP} -d $< > $@
 
+# Create debug file from elf
 %.dbg: %.elf
 	@printf "OBJCOPY $< $@\n"
 	@${OBJCOPY} --only-keep-debug $< $@

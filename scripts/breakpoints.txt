@@ -1,5 +1,2 @@
-handle_exception
-monitor.c:setup
-monitor.c:loop
-app.c:setup
+*0x80010000
 app.c:loop
