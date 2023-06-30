@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../misc/config.h"
 #include "altio.h"
 #include "s3k.h"
@@ -15,11 +17,12 @@ void capman_dump_all(void);
 int capman_find_free(void);
 void capman_getpmp(uint8_t pmp[8]);
 void capman_setpmp(uint8_t pmp[8]);
-static int capman_find_existing_pmp(uint64_t begin, uint64_t end);
+void capman_getsoc(uint8_t soc[8]);
 int capman_update_pmp(int tidx, uint64_t begin, uint64_t end, uint64_t rwx);
 bool capman_derive_mem(int idx, uint64_t begin, uint64_t end, uint64_t rwx);
 bool capman_derive_time(int idx, uint64_t hartid, uint64_t begin, uint64_t end);
 bool capman_derive_pmp(int idx, uint64_t begin, uint64_t end, uint64_t rwx);
+bool capman_derive_socket(int idx, uint64_t port, uint64_t tag);
 bool capman_mresume(uint64_t pid);
 bool capman_msuspend(uint64_t pid);
 bool capman_mgivecap(uint64_t pid, uint64_t src, uint64_t dest);
@@ -113,6 +116,12 @@ static void _dump_channel(union s3k_cap cap)
 		   cap.channel.begin, cap.channel.end, cap.channel.free);
 }
 
+static void _dump_socket(union s3k_cap cap)
+{
+	alt_printf("socket{port=0x%X,tag=0x%X}\n",
+		   cap.socket.channel, cap.socket.tag);
+}
+
 void capman_dump(union s3k_cap cap)
 {
 	switch (cap.type) {
@@ -132,6 +141,9 @@ void capman_dump(union s3k_cap cap)
 		break;
 	case S3K_CAPTY_CHANNEL:
 		_dump_channel(cap);
+		break;
+	case S3K_CAPTY_SOCKET:
+		_dump_socket(cap);
 		break;
 	default:
 		alt_printf("0x%X\n", cap.raw);
@@ -176,6 +188,26 @@ static int find_time_derive(union s3k_cap cap)
 	return -1;
 }
 
+/* NEW */
+static int find_channel_derive(union s3k_cap cap)
+{
+	for (int i = NCAP - 1; i >= 0; --i) {
+		if (s3k_channel_derive(caps[i], cap))
+			return i;
+	}
+	return -1;
+}
+
+/* NEW */
+static int find_socket_derive(union s3k_cap cap)
+{
+	for (int i = NCAP - 1; i >= 0; --i) {
+		if (s3k_socket_derive(caps[i], cap))
+			return i;
+	}
+	return -1;
+}
+
 void capman_setpmp(uint8_t pmp[8])
 {
 	uint64_t pmpreg = 0;
@@ -193,8 +225,20 @@ void capman_getpmp(uint8_t pmp[8])
 	}
 }
 
-/* New */
+/* NEW */
+void capman_getsoc(uint8_t soc[8])
+{
+	for (int i = 0; i < NCAP; i++) {
+		if (caps[i].raw == 0)
+			continue;
+		if (caps[i].type != S3K_CAPTY_SOCKET)
+			continue;
+			
+		soc[caps[i].socket.channel] = i;	
+	}
+}
 
+/* New */
 static int capman_find_existing_pmp(uint64_t begin, uint64_t end)
 {
 	uint64_t tbegin;
@@ -218,16 +262,20 @@ int capman_update_pmp(int tidx, uint64_t begin, uint64_t end, uint64_t rwx)
 	uint64_t idx;
 
 	// find index of matching pmp
-	if ((idx = capman_find_existing_pmp(begin, end)) == -1) return 1;
+	if ((idx = capman_find_existing_pmp(begin, end)) == -1)
+		return 1;
 	
 	// derive new pmp
-	if (!(capman_derive_pmp(tidx, begin, end, rwx))) return 2;
+	if (!(capman_derive_pmp(tidx, begin, end, rwx)))
+		return 2;
 	
 	// delete old pmp
-	if (!(capman_delcap(idx))) return 3;
+	if (!(capman_delcap(idx)))
+		return 3;
 
 	// move new pmp into index of old
-	if (!(capman_move(tidx, idx))) return 4;
+	if (!(capman_move(tidx, idx)))
+		return 4;
 
 	return 0;
 }
@@ -282,6 +330,25 @@ bool capman_derive_time(int idx, uint64_t hartid, uint64_t begin, uint64_t end)
 		ncaps++;
 		return true;
 	}
+	return false;
+}
+
+/* NEW */
+bool capman_derive_socket(int idx, uint64_t port, uint64_t tag)
+{
+	union s3k_cap soc = s3k_socket(port, tag);
+	uint64_t i;
+
+	if ((i = find_channel_derive(soc)) == -1)
+		i = find_socket_derive(soc);
+
+	if (s3k_drvcap(i, idx, soc) == S3K_EXCPT_NONE) {
+		caps[i] = s3k_getcap(i);
+		caps[idx] = s3k_getcap(idx);
+		ncaps++;
+		return true;
+	}
+
 	return false;
 }
 

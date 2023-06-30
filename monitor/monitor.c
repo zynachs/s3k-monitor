@@ -10,6 +10,8 @@
 
 #define MONITOR_PID 0
 #define APP_PID 1
+#define SOCKET_PORT1 0xa
+#define SOCKET_PORT2 0xb
 
 struct memory_section {
 	char section[8];
@@ -18,6 +20,10 @@ struct memory_section {
 };
 
 uint8_t pmpcaps[8] = { 0 };
+uint8_t soccaps[8] = { 0 };
+
+uint64_t recv_buf[4] = { 0x0, 0x0, 0x0, 0x0 };
+uint64_t tag;
 
 void setup_memory_slices(void) 
 {
@@ -33,6 +39,16 @@ void setup_time_slices(void)
 	uint64_t hartid = 0;
 	/* App time */
 	capman_derive_time(0x18, hartid, 0, 32);
+}
+
+void setup_ipc(void)
+{	
+	capman_derive_socket(SOCKET_PORT1, 0, 0);
+	capman_derive_socket(0x20, 0, 1);
+	capman_mgivecap(APP_PID, 0x20, SOCKET_PORT2);
+	capman_derive_socket(0x20, 1, 0);
+	capman_derive_socket(SOCKET_PORT2, 1, 1);
+	capman_mgivecap(APP_PID, 0x20, SOCKET_PORT1);
 }
 
 void setup_monitor(void)
@@ -56,7 +72,7 @@ void setup_app(void)
 		{"data", S3K_RW, CHUNK_SIZE},
 		{"rodata", S3K_R, CHUNK_SIZE},
 		{"bss", S3K_RW, CHUNK_SIZE},
-		{"heap0", S3K_RX, CHUNK_SIZE}, /* placed directly after .bss*/
+		{"heap0", S3K_R, CHUNK_SIZE}, /* placed directly after .bss*/
 		{"heap1", S3K_R, CHUNK_SIZE}, /* Not used, specified by CHUNK_MASK in base.h */
 		{"heap2", S3K_R, CHUNK_SIZE}, /* Not used, specified by CHUNK_MASK in base.h */ 
 		{"heap3", S3K_R, CHUNK_SIZE}, /* Not used, specified by CHUNK_MASK in base.h */
@@ -65,7 +81,7 @@ void setup_app(void)
 		{"heap6", S3K_R, CHUNK_SIZE}, /* Not used, specified by CHUNK_MASK in base.h */
 		{"heap7", S3K_R, CHUNK_SIZE}, /* Not used, specified by CHUNK_MASK in base.h */
 		{"heap8", S3K_R, CHUNK_SIZE}, /* Not used, specified by CHUNK_MASK in base.h */
-		{"heap9", S3K_RX, CHUNK_SIZE}, /* placed directly before .stack*/
+		{"heap9", S3K_R, CHUNK_SIZE}, /* placed directly before .stack*/
 		{"stack", S3K_RW, CHUNK_SIZE}
 	};
 
@@ -119,42 +135,72 @@ void setup_app(void)
 
 void setup(void)
 {
+
 	/* Delete time on core 2 3 4. */
 	s3k_delcap(4);
 	s3k_delcap(5);
 	s3k_delcap(6);
 
-	// Initialize capman
+	/* Initialize capman */
 	capman_init();
 
 	/* Setup monitor */
 	setup_monitor();
+	alt_printf("[MON]\tSetup\n");
 
 	/* Setup memory and time */
+	alt_printf("\t- memory\n\t- time\n");
 	setup_memory_slices();
 	setup_time_slices();
 
-	alt_printf("[MON]\tSetup\n");
-
 	/* Setup app */
+	alt_printf("\t- app\n");
 	setup_app();
+
+	/* Setup IPC */
+	alt_printf("\t- ipc\n");
+	setup_ipc();
+	capman_getsoc(soccaps);
+
+	alt_printf("\t- caps{\n");
+	capman_dump_all();
+	alt_printf("}\n");
 
 	s3k_yield();
 
 	/* Start app */
 	alt_printf("[MON]\tResuming app...\n");
 	capman_mresume(APP_PID);
-	s3k_yield();
+
+	/* Wait for app to respond */
+	s3k_recv(soccaps[0], recv_buf, -1ull, &tag);
+	recv_buf[0] == -1ull ? alt_printf("[MON]\tApp setup success! 0x%X\n", recv_buf[0]) : alt_printf("[MON]\tApp setup failed! 0x%X\n", recv_buf[0]);
+
 }
 
 void loop(void)
 {
 	static uint8_t iloop = 0;
-	alt_printf("[MON]\tLoop #0x%X\n", iloop);
-	switch (iloop++) {
-		default:
-	}
+	
+	alt_printf("[MON]\tLoop #0x%X\n", iloop++);
 
-	/* Does nothing, tells the kernel that it is done. */
-	s3k_yield();
+	/* Yields until msg read from buffer */	
+	s3k_recv(soccaps[0], recv_buf, -1ull, &tag);
+
+	switch (recv_buf[0]) {
+		case 0x00:
+			alt_printf("[MON]\tNo msg from app\n");
+			break;
+		case 0x02:
+			alt_printf("[MON]\tApp requests to update PMP from RW to RX\n");
+			/* Verify code */
+			recv_buf[0] = 0x01;
+			s3k_send(soccaps[1], recv_buf, -1ull, false);
+			break;
+		case 0x01:
+			alt_printf("[MON]\tApp has handled an exception\n");
+			break;
+		default:
+			alt_printf("[MON]\tMsg from app\n\ttag:%X msg=%X,%X,%X,%X\n", tag, recv_buf[0], recv_buf[1], recv_buf[2], recv_buf[3]);
+	}
 }

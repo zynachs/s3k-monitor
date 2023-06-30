@@ -18,11 +18,11 @@ SECTIONS {
                 _text = .;
                 *(.init)
                 *(.text .text.*)
-                . = ALIGN(4K);
+                . = ALIGN(8K);
                 _etext = .;
         } > MONITOR
 
-        ASSERT ((SIZEOF(.text) <= 4K), "ERROR: .text region too large, will break PMP compatability.")
+        ASSERT ((SIZEOF(.text) <= 8K), "ERROR: .text region too large, will break PMP compatability.")
 
         /* Program data 
            OFFSET: +0x1000 (4K) 

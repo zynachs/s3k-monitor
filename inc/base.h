@@ -1,3 +1,5 @@
+#pragma once
+
 #define MONITOR_BASE 0x80010000ull
 #define APP_BASE 0x80020000ull
 #define APP_SIZE 0x10000ull
