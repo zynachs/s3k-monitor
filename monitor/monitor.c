@@ -4,8 +4,8 @@
 #include "capman.h"
 #include "payload.h"
 #include "s3k.h"
-#include "../inc/aes128.h"
-#include "../inc/code-auth.h"
+#include "aes128.h"
+#include "code-auth.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -69,6 +69,11 @@ void setup_monitor(void)
 
 void setup_app(void) 
 {
+  	/* Revoke access to app memory */
+	pmpcaps[1] = 0x0;
+	capman_setpmp(pmpcaps);
+	capman_delcap(0x20);
+
 	/* Keep track of PMP capabilities created */
 	uint8_t npmp = 0; // number of PMP capabilities created
 	uint64_t ipmp = 0x0000000000000000; // byte mask of indices to PMP capabilities
@@ -135,12 +140,7 @@ void load_app()
 	capman_setpmp(pmpcaps);
 
 	/* Copy app-binary to allocated memory: */
-	memcpy((void *)APP_BASE, app_bin, app_bin_len);
-  	
-  /* Revoke access to app memory */
-	pmpcaps[1] = 0x0;
-	capman_setpmp(pmpcaps);
-	capman_delcap(0x20);
+	memcpy((void *)APP_BASE, (void*)(app_bin + header_size), app_bin_len);
 }
 
 void setup(void)
@@ -163,21 +163,22 @@ void setup(void)
 	setup_memory_slices();
 	setup_time_slices();
 
-  /* Load app to allocated memory */
-	load_app();
-  
-  // Holder for calculating MAC signature
+  	// Holder for calculating MAC signature
 	uint8_t signature[16];
 
 	/* Calculate mac of app and store in signature */
-	uint8_t *ptr_app = (void *)(APP_BASE + header_size);
+	uint8_t *ptr_app = (void *)(app_bin + header_size);
 	calc_sig(ptr_app, app_bin_len - header_size, signature);
   
-  /* Authentication, compares provided signature with calculated signature and setup app if successfull */
-	if (comp_sig((void *)APP_BASE, signature) != 1){
+  	/* Authentication, compares provided signature with calculated signature and setup app if successfull */
+	if (comp_sig((void *)app_bin, signature) != 1){
     alt_puts("Authentication failed");
 		return;
-  }
+  	}
+
+  	/* Load app to allocated memory */
+	alt_printf("\t- load app\n");
+	load_app();
   
 	/* Setup app */
 	alt_printf("\t- app\n");

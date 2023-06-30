@@ -1,5 +1,5 @@
-#include "../inc/aes128.c"
-#include "../inc/code-auth.c"
+#include "../inc/aes128.h"
+#include "../inc/code-auth.h"
 #include <stdio.h>
 #include <stdlib.h>
 #define signature_size 16 

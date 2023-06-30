@@ -108,7 +108,7 @@ $(BUILD)/%.S.o: %.S
 
 # Monitor 
 MONITOR_SRCS=monitor/monitor.c monitor/payload.S common/start.S
-MONITOR_INC=inc/base.h inc/capman.h inc/altio.h misc/config.h inc/s3k.h
+MONITOR_INC=inc/base.h inc/capman.h inc/altio.h misc/config.h inc/s3k.h inc/code-auth.h inc/aes128.h
 MONITOR_LDS=monitor/monitor.lds
 MONITOR_DEPS+=$(patsubst %, $(BUILD)/%.d, $(MONITOR_SRCS))
 build/monitor/payload.S.o: build/app_format.bin
