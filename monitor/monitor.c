@@ -4,12 +4,18 @@
 #include "capman.h"
 #include "payload.h"
 #include "s3k.h"
+#include "../inc/aes128.h"
+#include "../inc/code-auth.h"
 
 #include <stdbool.h>
 #include <string.h>
 
 #define MONITOR_PID 0
 #define APP_PID 1
+
+#define signature_size 16 
+#define header_size 512ull
+
 #define SOCKET_PORT1 0xa
 #define SOCKET_PORT2 0xb
 
@@ -18,6 +24,7 @@ struct memory_section {
 	uint8_t rwx;
 	uint64_t size;
 };
+
 
 uint8_t pmpcaps[8] = { 0 };
 uint8_t soccaps[8] = { 0 };
@@ -85,19 +92,6 @@ void setup_app(void)
 		{"stack", S3K_RW, CHUNK_SIZE}
 	};
 
-	/* Give monitor access to APP memory */
-	capman_derive_pmp(0x20, APP_BASE, APP_BASE + APP_SIZE, S3K_RW);
-	pmpcaps[1] = 0x20;
-	capman_setpmp(pmpcaps);
-
-	/* Copy over binary */
-	memcpy((void *)APP_BASE, app_bin, app_bin_len);
-
-	/* Revoke access to app memory */
-	pmpcaps[1] = 0x0;
-	capman_setpmp(pmpcaps);
-	capman_delcap(0x20);
-
 	/* Derive PMP for each section and give to APP */
 	uint64_t temp_counter = APP_BASE;
 	for (uint8_t j = 0; j < (sizeof(memory_sections) / sizeof(memory_sections[0])) || temp_counter < app_bin_len; j++) {
@@ -133,6 +127,22 @@ void setup_app(void)
 	capman_msetreg(APP_PID, S3K_REG_PMP, ipmp);
 }
 
+void load_app()
+{	
+	/* Give monitor access to APP memory */
+	capman_derive_pmp(0x20, APP_BASE, APP_BASE + APP_SIZE, S3K_RW);
+	pmpcaps[1] = 0x20;
+	capman_setpmp(pmpcaps);
+
+	/* Copy app-binary to allocated memory: */
+	memcpy((void *)APP_BASE, app_bin, app_bin_len);
+  	
+  /* Revoke access to app memory */
+	pmpcaps[1] = 0x0;
+	capman_setpmp(pmpcaps);
+	capman_delcap(0x20);
+}
+
 void setup(void)
 {
 
@@ -153,6 +163,22 @@ void setup(void)
 	setup_memory_slices();
 	setup_time_slices();
 
+  /* Load app to allocated memory */
+	load_app();
+  
+  // Holder for calculating MAC signature
+	uint8_t signature[16];
+
+	/* Calculate mac of app and store in signature */
+	uint8_t *ptr_app = (void *)(APP_BASE + header_size);
+	calc_sig(ptr_app, app_bin_len - header_size, signature);
+  
+  /* Authentication, compares provided signature with calculated signature and setup app if successfull */
+	if (comp_sig((void *)APP_BASE, signature) != 1){
+    alt_puts("Authentication failed");
+		return;
+  }
+  
 	/* Setup app */
 	alt_printf("\t- app\n");
 	setup_app();
@@ -175,7 +201,6 @@ void setup(void)
 	/* Wait for app to respond */
 	s3k_recv(soccaps[0], recv_buf, -1ull, &tag);
 	recv_buf[0] == -1ull ? alt_printf("[MON]\tApp setup success! 0x%X\n", recv_buf[0]) : alt_printf("[MON]\tApp setup failed! 0x%X\n", recv_buf[0]);
-
 }
 
 void loop(void)

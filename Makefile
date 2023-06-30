@@ -111,7 +111,7 @@ MONITOR_SRCS=monitor/monitor.c monitor/payload.S common/start.S
 MONITOR_INC=inc/base.h inc/capman.h inc/altio.h misc/config.h inc/s3k.h
 MONITOR_LDS=monitor/monitor.lds
 MONITOR_DEPS+=$(patsubst %, $(BUILD)/%.d, $(MONITOR_SRCS))
-build/monitor/payload.S.o: build/app.bin
+build/monitor/payload.S.o: build/app_format.bin
 $(BUILD)/monitor.elf: $(patsubst %, $(BUILD)/%.o, $(MONITOR_SRCS)) lib/libs3k.a $(MONITOR_INC)
 	@mkdir -p ${@D}
 	@printf "CC $@\n"
@@ -126,6 +126,11 @@ $(BUILD)/app.elf: $(patsubst %, $(BUILD)/%.o, $(APP_SRCS)) lib/libs3k.a $(APP_IN
 	@mkdir -p ${@D}
 	@printf "CC $@\n"
 	@$(CC) ${CLIFLAG} $(LDFLAGS) -T$(APP_LDS) -o $@ $^
+
+build/app_format.bin: build/app.bin
+	gcc scripts/app_format.c -o scripts/app_format.o
+	python3 scripts/getsections.py
+	./scripts/app_format.o
 
 # Make kernel
 $(BUILD)/s3k.elf: ${CONFIG_H}
