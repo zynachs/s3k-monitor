@@ -13,7 +13,8 @@
 
 #define MONITOR_PID 0
 #define APP_PID 1
-#define signature_size 16 //16B
+#define signature_size 16 
+#define header_size 512ull
 
 uint8_t pmpcaps[8] = { 0 };
 
@@ -95,11 +96,10 @@ void setup(void)
 	uint8_t signature[16];
 
 	/* Calculate mac of app and store in signature */
-	uint8_t *ptr_signature = (void *)APP_BASE + signature_size;
+	uint8_t *ptr_app = (void *)(APP_BASE + header_size);
+	calc_sig(ptr_app, app_bin_len - header_size, signature);
 
-	calc_sig(ptr_signature, app_bin_len - signature_size, signature);
-
-	/* Authentication, compares provided signature with calculated signature and setup/start app if successfull */
+	/* Authentication, compares provided signature with calculated signature and setup app if successfull */
 	if (comp_sig((void *)APP_BASE, signature) == 1){
 
 		/* Setup app */
@@ -113,7 +113,8 @@ void setup(void)
 		s3k_yield();
 		
 	}else{
-		alt_puts("authentication failed");
+		alt_puts("Authentication failed");
+		s3k_yield();
 	}
 }
 
