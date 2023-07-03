@@ -2,11 +2,37 @@
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import Section
 
-# open elf file
-appelf = ELFFile(open("build/app.elf", 'rb'))
-# open output file
-output = open('scripts/sectionsinfo.txt', 'w')
+# converts permissions format from elf to format for monitor
+def convert_permissions(permissions_code):
+    # R
+    if permissions_code == "0x2":
+        return "0x1"
+    # W
+    elif permissions_code == "0x1":
+        return "0x2"
+    # X
+    elif permissions_code == "0x4":
+        return "0x4"
+    # RW
+    elif permissions_code == "0x3":
+        return "0x3"
+    # RX
+    elif permissions_code == "0x6":
+        return "0x5"
+    # WX
+    elif permissions_code == "0x5":
+        return "0x6"
+    # RWX
+    elif permissions_code == "0x7":
+        return "0x7"
+    # if permission code (sh_flag) is none of above, return 0
+    else:
+        return "0"
 
+# open elf file
+appelf = ELFFile(open("app.elf", 'rb'))
+# open output file
+output = open('sectionsinfo.txt', 'w')
 
 # naming sections
 text_name = ".text"
@@ -16,139 +42,35 @@ bss_name = ".bss"
 heap_name = ".heap"
 stack_name = ".stack"
 
+sections = [text_name, data_name, rodata_name, bss_name, heap_name, stack_name]
 
-### .text ###
-# get section from section name
-text = appelf.get_section_by_name(text_name)
+# print name, address, size and permissions for all sections in list.
+for x in range(len(sections)):
+    
+    # get section from section name
+    section = appelf.get_section_by_name(sections[x])
 
-if isinstance(text, Section)==True:
-    # get size of section
-    text_size = hex(text.data_size)
-    # get addr of section
-    text_addr = hex(text.header.sh_addr)
+    if isinstance(section, Section)==True:
+        # get size of section
+        section_size = hex(section.data_size)
+        # get addr of section
+        section_addr = hex(section.header.sh_addr)
+        # get section persissions flag
+        section_permissions = convert_permissions(hex(section.header.sh_flags))
 
-    # convert name to hex
-    text_name = text_name.encode('utf-8')
-    text_name = text_name[::-1]
-    text_name = text_name.hex()
+        # convert name to hex
+        sections[x] = sections[x].encode('utf-8')
+        sections[x] = sections[x][::-1]
+        sections[x] = sections[x].hex()
 
-    # print to file
-    print(text_name, file = output)
-    print(text_addr, file = output)
-    print(text_size, file = output)
-
-else:
-    print('  The file has no %s section' % text_name)
-
-### .data ###
-# get section from section name
-data = appelf.get_section_by_name(data_name)
-if isinstance(data, Section)==True:
-    # get size of section
-    data_size = hex(data.data_size)
-    # get addr of section
-    data_addr = hex(data.header.sh_addr)
-
-    # convert name to hex
-    data_name = data_name.encode('utf-8')
-    data_name = data_name[::-1]
-    data_name = data_name.hex()
-
-    # print to file
-    print(data_name, file = output)
-    print(data_addr, file = output)
-    print(data_size, file = output)
+        # print to file
+        print(sections[x], file = output)
+        print(section_addr, file = output)
+        print(section_size, file = output)
+        print(section_permissions, file = output)
 
 else:
-    print('  The file has no %s section' % data_name)
-
-### .rodata ###
-# get section from section name
-rodata = appelf.get_section_by_name(rodata_name)
-if isinstance(rodata, Section)==True:
-    # get size of section
-    rodata_size = hex(rodata.data_size)
-    # get addr of section
-    rodata_addr = hex(rodata.header.sh_addr)
-
-    # convert name to hex
-    rodata_name = rodata_name.encode('utf-8')
-    rodata_name = rodata_name[::-1]
-    rodata_name = rodata_name.hex()
-
-    # print to file
-    print(rodata_name, file = output)
-    print(rodata_addr, file = output)
-    print(rodata_size, file = output)
-
-else:
-    print('  The file has no %s section' % rodata_name)
-
-### .bss ###
-# get section from section name
-bss = appelf.get_section_by_name(bss_name)
-if isinstance(bss, Section)==True:
-    # get size of section
-    bss_size = hex(bss.data_size)
-    # get addr of section
-    bss_addr = hex(bss.header.sh_addr)
-
-    # convert name to hex
-    bss_name = bss_name.encode('utf-8')
-    bss_name = bss_name[::-1]
-    bss_name = bss_name.hex()
-
-    # print to file
-    print(bss_name, file = output)
-    print(bss_addr, file = output)
-    print(bss_size, file = output)
-
-else:
-    print('  The file has no %s section' % bss_name)
-
-### .heap ###
-# get section from section name
-heap = appelf.get_section_by_name(heap_name)
-if isinstance(heap, Section)==True:
-    # get size of section
-    heap_size = hex(heap.data_size)
-    # get addr of section
-    heap_addr = hex(heap.header.sh_addr)
-
-    # convert name to hex
-    heap_name = heap_name.encode('utf-8')
-    heap_name = heap_name[::-1]
-    heap_name = heap_name.hex()
-
-    # print to file
-    print(heap_name, file = output)
-    print(heap_addr, file = output)
-    print(heap_size, file = output)
-
-else:
-    print('  The file has no %s section' % heap_name)
-
-### .stack ###
-# get section from section name
-stack = appelf.get_section_by_name(stack_name)
-if isinstance(stack, Section)==True:
-    # get size of section
-    stack_size = hex(stack.data_size)
-    # get addr of section
-    stack_addr = hex(stack.header.sh_addr)
-
-    # convert name to hex
-    stack_name = stack_name.encode('utf-8')
-    stack_name = stack_name[::-1]
-    stack_name = stack_name.hex()
-
-    # print to file
-    print(stack_name, file = output)
-    print(stack_addr, file = output)
-    print(stack_size, file = output)
-
-else:
-    print('  The file has no %s section' % stack_name)
+    print('  The file has no %s section' % section)
 
 
 
