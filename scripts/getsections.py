@@ -30,9 +30,9 @@ def convert_permissions(permissions_code):
         return "0"
 
 # open elf file
-appelf = ELFFile(open("app.elf", 'rb'))
+appelf = ELFFile(open("build/app.elf", 'rb'))
 # open output file
-output = open('sectionsinfo.txt', 'w')
+output = open('scripts/sectionsinfo.txt', 'w')
 
 # naming sections
 text_name = ".text"
