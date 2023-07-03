@@ -29,6 +29,7 @@ if isinstance(text, Section)==True:
 
     # convert name to hex
     text_name = text_name.encode('utf-8')
+    text_name = text_name[::-1]
     text_name = text_name.hex()
 
     # print to file
@@ -50,6 +51,7 @@ if isinstance(data, Section)==True:
 
     # convert name to hex
     data_name = data_name.encode('utf-8')
+    data_name = data_name[::-1]
     data_name = data_name.hex()
 
     # print to file
@@ -71,6 +73,7 @@ if isinstance(rodata, Section)==True:
 
     # convert name to hex
     rodata_name = rodata_name.encode('utf-8')
+    rodata_name = rodata_name[::-1]
     rodata_name = rodata_name.hex()
 
     # print to file
@@ -92,6 +95,7 @@ if isinstance(bss, Section)==True:
 
     # convert name to hex
     bss_name = bss_name.encode('utf-8')
+    bss_name = bss_name[::-1]
     bss_name = bss_name.hex()
 
     # print to file
@@ -113,6 +117,7 @@ if isinstance(heap, Section)==True:
 
     # convert name to hex
     heap_name = heap_name.encode('utf-8')
+    heap_name = heap_name[::-1]
     heap_name = heap_name.hex()
 
     # print to file
@@ -134,6 +139,7 @@ if isinstance(stack, Section)==True:
 
     # convert name to hex
     stack_name = stack_name.encode('utf-8')
+    stack_name = stack_name[::-1]
     stack_name = stack_name.hex()
 
     # print to file
