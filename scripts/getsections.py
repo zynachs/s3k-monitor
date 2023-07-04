@@ -2,36 +2,32 @@
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import Section
 
-# converts permissions format from elf to format for monitor
-def convert_permissions(permissions_code):
-    # R
-    if permissions_code == "0x2":
-        return "0x1"
-    # W
-    elif permissions_code == "0x1":
-        return "0x2"
-    # X
-    elif permissions_code == "0x4":
-        return "0x4"
-    # RW
-    elif permissions_code == "0x3":
+# statically sets permissions for each section
+def get_permissions(section_name):
+    if section_name == ".text":
+        #RX
+        return "0x5" 
+    elif section_name == ".data":
+        #RW
         return "0x3"
-    # RX
-    elif permissions_code == "0x6":
-        return "0x5"
-    # WX
-    elif permissions_code == "0x5":
-        return "0x6"
-    # RWX
-    elif permissions_code == "0x7":
-        return "0x7"
-    # if permission code (sh_flag) is none of above, return 0
+    elif section_name == ".rodata":
+        #R
+        return "0x1"
+    elif section_name == ".bss":
+        #R
+        return "0x1"
+    elif section_name == ".heap":
+        #RW
+        return "0x3"
+    elif section_name == ".stack":
+        #RW
+        return "0x3"
     else:
-        return "0"
+        return
 
 # open elf file
 appelf = ELFFile(open("build/app.elf", 'rb'))
-# open output file
+# open output files
 output = open('scripts/sectionsinfo.txt', 'w')
 
 # naming sections
@@ -41,7 +37,6 @@ rodata_name = ".rodata"
 bss_name = ".bss"
 heap_name = ".heap"
 stack_name = ".stack"
-
 sections = [text_name, data_name, rodata_name, bss_name, heap_name, stack_name]
 
 # print name, address, size and permissions for all sections in list.
@@ -56,7 +51,7 @@ for x in range(len(sections)):
         # get addr of section
         section_addr = hex(section.header.sh_addr)
         # get section persissions flag
-        section_permissions = convert_permissions(hex(section.header.sh_flags))
+        section_permissions = get_permissions(sections[x])
 
         # convert name to hex
         sections[x] = sections[x].encode('utf-8')
@@ -71,7 +66,3 @@ for x in range(len(sections)):
 
 else:
     print('  The file has no %s section' % section)
-
-
-
-
