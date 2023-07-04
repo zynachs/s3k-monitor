@@ -15,7 +15,7 @@ def get_permissions(section_name):
         return "0x1"
     elif section_name == ".bss":
         #RW
-        return "0x1"
+        return "0x3"
     elif section_name == ".heap":
         #R
         return "0x1"
