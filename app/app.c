@@ -11,7 +11,7 @@ extern const void * _stack; /* address of bottom of stack, defined in start.S */
 extern const void * _heap;
 extern const void * _rodata;
 
-uint8_t pmpcaps[8] = { 0 };
+uint8_t pmpcaps[2][8] = { {0}, {0} };
 uint8_t soccaps[8] = { 0 }; /* stored as pairs: [0] send + [1] recv, [2] send + [3] recv */
 
 uint64_t buf[4] = {0x00, 0x00, 0x00, 0x00};
@@ -19,8 +19,11 @@ uint64_t tag;
 
 char trapstack[2048]; /* dedicated stack for trap_handler, will probably be place in .bss */
 
-void trap_handler(void) __attribute__((interrupt("user")));
+void trap_handler(void) __attribute__((interrupt("machine")));
 void th_softreset(void);
+void th_hardreset(void);
+int th_updatepmp(uint64_t idx, union s3k_cap cap, uint64_t rwx);
+int th_stackexpansion(uint64_t esp);
 void setup();
 void loop();
 
@@ -55,6 +58,44 @@ void th_softreset(void)
     return;
 }
 
+void th_hardreset(void)
+{
+    alt_printf("\t- Action: hard-reset\n");
+    s3k_setreg(S3K_REG_EPC, (uint64_t)&setup);
+    s3k_setreg(S3K_REG_ESP, (uint64_t)&_stack_top);
+    return;
+}
+
+int th_updatepmp(uint64_t idx, union s3k_cap pmp, uint64_t rwx) 
+{
+    buf[0] = 0x02; // instruction to monitor that app wants to update pmp
+    buf[1] = s3k_pmp_napot_begin(pmp.pmp.addr); // pmp begin
+    buf[2] = s3k_pmp_napot_end(pmp.pmp.addr); // pmp end
+    buf[3] = rwx; // pmp rwx
+	s3k_send(soccaps[0], buf, idx, false); // request monitor to update pmp
+    s3k_recv(soccaps[1], buf, idx, &tag); // wait for monitor to respond
+    capman_update();
+
+    return buf[0];
+}
+
+int th_stackexpansion(uint64_t esp)
+{
+    uint64_t i;
+    uint64_t v;
+    union s3k_cap pmp;
+
+    if (altmem_stackexpansion((void*)esp)) {
+        i = altmem_findchunk((void*)esp);
+        v = (uint64_t)altmem_get_start(i);
+        i = capman_find_existing_pmp(v, v + altmem_get_size(i));
+        pmp = capman_get(i);
+        alt_printf("\t- Log: update PMP request sent to monitor\n");
+        return th_updatepmp(i, pmp, S3K_RW);
+    }
+    return 1;
+}
+
 void trap_handler(void)
 {
     /* Store the error code and value of the error */
@@ -65,6 +106,7 @@ void trap_handler(void)
     uint64_t itemp = 0;
     uint64_t vtemp = 0;
     uint64_t etemp = 0;
+    union s3k_cap pmp;
 
     switch (ecause) {
         case 1:
@@ -97,13 +139,15 @@ void trap_handler(void)
 
             alt_printf("\t- Log: instruction is within an allocated chunk\n");
 
-            /* Update PMP to RX, let monitor allow or deny */
-            // IPC with monitor, await response
-            buf[0] = 0x02;
-	        s3k_send(soccaps[0], buf, -1ull, false);
-            s3k_recv(soccaps[1], buf, -1ull, &tag);
+            vtemp = (uint64_t)altmem_get_start(itemp); // get start address of relevant chunk
+            itemp = capman_find_existing_pmp(vtemp, vtemp + altmem_get_size(itemp)); // get capability index for the existing pmp
+            pmp = capman_get(itemp); // get the pmp capability
 
-	        if ((etemp = buf[0]) != 0x00) {
+            /* Update PMP to RX, let monitor allow or deny */
+            alt_printf("\t- Log: update PMP request sent to monitor\n");
+            etemp = th_updatepmp(itemp, pmp, 0x7);
+
+	        if (etemp != 0x00) {
 	            alt_printf("[APP]\t- Log: PMP unsuccesfully updated; ERROR: %X\n", etemp);
                 th_softreset();
                 break;
@@ -120,51 +164,58 @@ void trap_handler(void)
             break;
         case 7:
             alt_printf("\t- ecause: 7 \"Store/AMO access fault\"\n\t- eval: 0x%X\n\t- epc: 0x%X\n", eval, epc);
-
+            
             /* Stack pointer has exceeded its limit, attempt to expand stack. */
             if (esp <= (uint64_t)&_stack) {
                 alt_printf("\t- Log: stack maxsize exceeded\n");
-                if (altmem_stackexpansion((void*)esp)) {
-                    itemp = altmem_findchunk((void*)esp);
-                    vtemp = (uint64_t)altmem_get_start(itemp);
-                    if ((etemp = capman_update_pmp(0x20, vtemp, vtemp + altmem_get_size(itemp), S3K_RW)) == 0) {
-                        alt_printf("\t- Log: stack succesfully expanded\n");
-                        alt_printf("\t- Action: expand stack\n");
-                        break;
-                    }
+                etemp = th_stackexpansion(esp);
+                if (etemp != 0) {
                     alt_printf("\t- Log: stack unsuccesfully expanded; ERROR: %X\n", etemp);
-                } else {
-                    alt_printf("\t- Log: stack unsuccesfully expanded; ERROR: adjacent chunk not available\n", vtemp);
+                    break;
                 }
+                alt_printf("\t- Log: stack succesfully expanded\n");
+                alt_printf("\t- Action: expand stack\n");
+                break;
             } 
-            else {
-	        /* Check if memory is allocated, update pmp with write permissions. */
-	            if ((itemp = altmem_findchunk((void*)eval)) == -1) {
-                    alt_printf("\t- Log: 0x%X does not match an allocatable chunk\n", eval);
-	            } else if (altmem_isoccupied(itemp) != -1) {
-                    alt_printf("\t- Log: chunk is allocated\n");
-	                vtemp = (uint64_t)altmem_get_start(itemp);
-	                if ((etemp = capman_update_pmp(0x20, vtemp, vtemp + altmem_get_size(itemp), S3K_RW)) == 0) {
-	                    alt_printf("\t- Log: PMP successfully updated\n");
-	                    alt_printf("\t- Action: set chunk permissions to RW\n");
-	                    break;
-	                }
-	                alt_printf("\t- Log: PMP unsuccesfully updated; ERROR: %X\n", etemp);
-	            } else {
-	                alt_printf("\t- Log: PMP unsuccesfully updated; ERROR: requested chunk is not allocated\n", vtemp);
-                }
-            }
 
-            // Default   
-            alt_printf("\t- Action: soft-reset\n");
-            s3k_setreg(S3K_REG_EPC, (uint64_t)&loop);
-            s3k_setreg(S3K_REG_ESP, (uint64_t)&_stack_top);
+	        /* Check if memory is in an allocatable chunk */
+            if ((itemp = altmem_findchunk((void*)eval)) == -1) {
+                alt_printf("\t- Log: 0x%X does not match an allocatable chunk\n", eval);
+                th_softreset();
+                break;
+            } 
+            
+            alt_printf("\t- Log: address is within an allocatable chunk\n");
+
+            /* Check if memory is in an allocated chunk */ 
+            if (altmem_isoccupied(itemp) == -1) {
+                alt_printf("\t- Log: chunk is not in an allocated chunk\n");
+                th_softreset();
+                break;
+            }
+            
+            alt_printf("\t- Log: chunk is allocated\n");
+
+            vtemp = (uint64_t)altmem_get_start(itemp);
+            itemp = capman_find_existing_pmp(vtemp, vtemp + altmem_get_size(itemp));
+            pmp = capman_get(itemp);
+
+            /* Request to update PMP */
+            alt_printf("\t- Log: update PMP request sent to monitor\n");
+            etemp = th_updatepmp(itemp, pmp, S3K_RW);
+
+            if (etemp != 0x00) {
+                alt_printf("\t- Log: PMP unsuccesfully updated; ERROR: %X\n", etemp);
+                th_softreset();
+                break;
+            }
+            
+            alt_printf("\t- Log: PMP successfully updated\n");
+            alt_printf("\t- Action: set chunk permissions to RW\n");
             break;
         default:
             alt_printf("\t- ecause: %X\n\t- eval %X\n\t- epc: %X\n", ecause, eval, epc);
-            alt_printf("\t- Action: hard-reset\n");
-            s3k_setreg(S3K_REG_EPC, (uint64_t)&_start);
-            s3k_setreg(S3K_REG_ESP, (uint64_t)&_stack_top);
+            th_hardreset();
     }
 
     /* App has handled an exception */
@@ -268,7 +319,7 @@ void setup(void)
     /* Setup capman */
     alt_printf("\t- caps{\n");
     capman_init();
-    capman_getpmp(pmpcaps);
+    capman_getpmp(pmpcaps[0]);
     capman_getsoc(soccaps);
     capman_dump_all();
 	alt_printf("}\n");
@@ -283,8 +334,6 @@ void setup(void)
     buf[0] = -1ull;
     alt_printf("\t- ipc, sending 0x%X to monitor\n", buf[0]);
     s3k_send(soccaps[0], buf, -1ull, false);
-
-    s3k_yield();
 }
 
 void loop(void)
@@ -336,5 +385,4 @@ void loop(void)
 	s3k_send(soccaps[0], buf, -1ull, false);
     
     s3k_yield();
-    return;
 }

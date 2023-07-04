@@ -18,7 +18,8 @@ int capman_find_free(void);
 void capman_getpmp(uint8_t pmp[8]);
 void capman_setpmp(uint8_t pmp[8]);
 void capman_getsoc(uint8_t soc[8]);
-int capman_update_pmp(int tidx, uint64_t begin, uint64_t end, uint64_t rwx);
+int capman_find_existing_pmp(uint64_t begin, uint64_t end); // update
+int capman_update_pmp(int idx, uint64_t begin, uint64_t end, uint64_t rwx); // update
 bool capman_derive_mem(int idx, uint64_t begin, uint64_t end, uint64_t rwx);
 bool capman_derive_time(int idx, uint64_t hartid, uint64_t begin, uint64_t end);
 bool capman_derive_pmp(int idx, uint64_t begin, uint64_t end, uint64_t rwx);
@@ -239,7 +240,7 @@ void capman_getsoc(uint8_t soc[8])
 }
 
 /* New */
-static int capman_find_existing_pmp(uint64_t begin, uint64_t end)
+int capman_find_existing_pmp(uint64_t begin, uint64_t end)
 {
 	uint64_t tbegin;
 	uint64_t tend;
@@ -257,12 +258,12 @@ static int capman_find_existing_pmp(uint64_t begin, uint64_t end)
 	return -1;
 }
 
-int capman_update_pmp(int tidx, uint64_t begin, uint64_t end, uint64_t rwx)
+int capman_update_pmp(int idx, uint64_t begin, uint64_t end, uint64_t rwx)
 {
-	uint64_t idx;
+	uint64_t tidx;
 
-	// find index of matching pmp
-	if ((idx = capman_find_existing_pmp(begin, end)) == -1)
+	// find a temporary free index
+	if ((tidx = capman_find_free()) == -1)
 		return 1;
 	
 	// derive new pmp

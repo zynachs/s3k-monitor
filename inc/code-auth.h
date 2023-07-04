@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include "aes128.h"
 #include "code-auth.h"
-#include "altio.h"
 
 // calculates signature and stores it in mac
 void calc_sig (uint8_t *buf, int len, uint8_t *mac);
@@ -11,8 +10,8 @@ void calc_sig (uint8_t *buf, int len, uint8_t *mac);
 int comp_sig (uint8_t *sig1, uint8_t *sig2);
 
 // calculates signature and returns pointer to signature
-void calc_sig (uint8_t *buf, int len, uint8_t *mac){
-
+void calc_sig (uint8_t *buf, int len, uint8_t *mac)
+{
 	// Encryption key
 	uint32_t mac_key[4] = {
 		0x16157e2b,
@@ -31,12 +30,11 @@ void calc_sig (uint8_t *buf, int len, uint8_t *mac){
 	aes128_cbc_mac(mac_rk, buf, mac, len);
 
 	return;
-
 }
 
 // compares two signatures and returns 1 if they are equal
-int comp_sig (uint8_t *sig1, uint8_t *sig2){
-		
+int comp_sig (uint8_t *sig1, uint8_t *sig2)
+{		
 	// compare generated MAC with signature; match = 1, no match = 0
 	int equal = 1;
 	for (int i=0; i<16; i++){
@@ -45,16 +43,5 @@ int comp_sig (uint8_t *sig1, uint8_t *sig2){
 		}
 	}
 
-	// for debugging
-	
-	if (equal == 0){
-		alt_puts("MAC not approved");
-	}
-	if (equal == 1){
-		alt_puts("MAC approved");
-	}
-	
-
 	return equal;
-
 }
