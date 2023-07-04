@@ -14,11 +14,11 @@ def get_permissions(section_name):
         #R
         return "0x1"
     elif section_name == ".bss":
-        #R
+        #RW
         return "0x1"
     elif section_name == ".heap":
-        #RW
-        return "0x3"
+        #R
+        return "0x1"
     elif section_name == ".stack":
         #RW
         return "0x3"
