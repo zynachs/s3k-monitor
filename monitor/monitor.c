@@ -235,7 +235,11 @@ void setup(void)
 
 	/* Wait for app to respond */
 	s3k_recv(soccaps[0], recv_buf, -1ull, &tag);
-	recv_buf[0] == -1ull ? alt_printf("\n[MON]\tApp setup success! Received: 0x%X\n", recv_buf[0]) : alt_printf("\n[MON]\tApp setup failed! 0x%X\n", recv_buf[0]);
+	if (recv_buf[0] != -1ull) {
+		alt_printf("\n[MON]\tApp setup failed! Received: 0x%X\n", recv_buf[0]);
+		return;
+	}
+	alt_printf("\n[MON]\tApp setup success! Received: 0x%X\n", recv_buf[0]);
 	app_running = true;
 }
 

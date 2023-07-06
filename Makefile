@@ -61,9 +61,9 @@ options:
 	@printf "CONFIG_H = ${abspath ${CONFIG_H}}\n"
 
 # Clean all
-clean: clean_repo clean_s3k
+clean_deep: clean clean_s3k
 
-clean_repo:
+clean:
 	rm -rf $(BUILD)
 	rm inc/s3k.h
 	rm lib/libs3k.a
@@ -108,21 +108,19 @@ $(BUILD)/%.S.o: %.S
 
 # Monitor 
 MONITOR_SRCS=monitor/monitor.c monitor/payload.S common/start.S
-MONITOR_INC=inc/base.h inc/capman.h inc/altio.h misc/config.h inc/s3k.h inc/code-auth.h inc/aes128.h
 MONITOR_LDS=misc/default.lds
 MONITOR_DEPS+=$(patsubst %, $(BUILD)/%.d, $(MONITOR_SRCS))
 build/monitor/payload.S.o: build/app_format.bin
-$(BUILD)/monitor.elf: $(patsubst %, $(BUILD)/%.o, $(MONITOR_SRCS)) lib/libs3k.a $(MONITOR_INC)
+$(BUILD)/monitor.elf: $(patsubst %, $(BUILD)/%.o, $(MONITOR_SRCS)) lib/libs3k.a
 	@mkdir -p ${@D}
 	@printf "CC $@\n"
 	@$(CC) ${CLIFLAG} $(LDFLAGS) -T$(MONITOR_LDS) -o $@ $^
 
 # App
 APP_SRCS=app/app.c common/start.S
-APP_INC=inc/capman.h inc/altio.h inc/altmem.h inc/s3k.h
 APP_LDS=misc/pmp_compatible.lds
 APP_DEPS+=$(patsubst %, $(BUILD)/%.d, $(APP_SRCS))
-$(BUILD)/app.elf: $(patsubst %, $(BUILD)/%.o, $(APP_SRCS)) lib/libs3k.a $(APP_INC)
+$(BUILD)/app.elf: $(patsubst %, $(BUILD)/%.o, $(APP_SRCS)) lib/libs3k.a
 	@mkdir -p ${@D}
 	@printf "CC $@\n"
 	@$(CC) ${CLIFLAG} $(LDFLAGS) -T$(APP_LDS) -o $@ $^
