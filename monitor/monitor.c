@@ -10,6 +10,8 @@
 #include <stdbool.h>
 #include <string.h>
 
+#define SECURITY
+
 #define MONITOR_PID 0
 #define APP_PID 1
 
@@ -31,6 +33,8 @@ struct process {
 	uint64_t header_len;
 	struct memory_section header[8];
 };
+
+bool app_running = false;
 
 uint8_t pmpcaps[8] = { 0 };
 uint8_t soccaps[8] = { 0 };
@@ -105,6 +109,12 @@ void setup_monitor(void)
 	/* Give monitor access to UART memory */
 	capman_derive_pmp(0x09, (uint64_t)UART_BASE, (uint64_t)UART_BASE + 0x100, S3K_RW);
 	pmpcaps[2] = 0x09;
+	
+	/* Give monitor access to APP memory */
+	capman_derive_pmp(0xc, APP_BASE, APP_BASE + APP_SIZE, S3K_RW);
+	pmpcaps[1] = 0xc;
+	capman_setpmp(pmpcaps);
+
 
 	capman_setpmp(pmpcaps);
 }
@@ -115,9 +125,9 @@ void setup_app(struct process app)
 	uint8_t npmp = 0; // number of PMP capabilities created
 	uint64_t ipmp = 0x0000000000000000; // byte mask of indices to PMP capabilities
 
+#ifdef SECURITY
 	/* Derive PMP for each section and give to APP */
 	for (uint8_t j = 0; j < app.header_len; j++) {
-		alt_printf("%s 0x%X + 0x%X 0x%X\n", app.header[j].section, APP_BASE + app.header[j].offset, app.header[j].size, app.header[j].rwx);
 		if (strcmp(app.header[j].section, ".heap") == 0) {
 			uint64_t nchunks = app.header[j].size / CHUNK_SIZE;
 			for (uint64_t k = 0; k < nchunks; k += nchunks-1) { // only create pmp for first and last heap chunk only to be a proof of concept
@@ -129,6 +139,10 @@ void setup_app(struct process app)
 		capman_derive_pmp(0x20, APP_BASE + app.header[j].offset, APP_BASE + app.header[j].offset + app.header[j].size, app.header[j].rwx);
 		capman_mgivecap(APP_PID, 0x20, npmp++);
 	} 
+#else
+	capman_derive_pmp(0x20, APP_BASE, APP_BASE + APP_SIZE, S3K_RWX);
+	capman_mgivecap(APP_PID, 0x20, npmp++);
+#endif
 
 	/* Create capability to access UART memory, then give it to APP */
 	capman_derive_pmp(0x20, (uint64_t)UART_BASE, (uint64_t)UART_BASE + 0x100, S3K_RW);
@@ -150,26 +164,12 @@ void setup_app(struct process app)
 
 void load_app()
 {	
-	/* Give monitor access to APP memory */
-	capman_dump_all();
-	capman_derive_pmp(0xc, APP_BASE, APP_BASE + APP_SIZE, S3K_RW);
-	pmpcaps[1] = 0xc;
-	capman_setpmp(pmpcaps);
-
 	/* Copy app-binary to allocated memory: */
 	memcpy((void *)APP_BASE, (void*)(app_bin + HEADER_SIZE), app_bin_len - HEADER_SIZE);
-
-  	/* Revoke access to app memory */
-	pmpcaps[1] = 0x0;
-	capman_setpmp(pmpcaps);
-	capman_delcap(0xc);
-
 }
 
 void setup(void)
 {
-	uint8_t signature[16]; // Holder for calculating MAC signature
-	uint8_t * ptr_app;
 	struct process app; //struct process app;
 
 	/* Delete time on core 2 3 4. */
@@ -182,7 +182,7 @@ void setup(void)
 
 	/* Setup monitor */
 	setup_monitor();
-	alt_printf("[MON]\tSetup\n");
+	alt_printf("\n[MON]\tSetup\n");
 
 	/* Setup memory and time */
 	alt_printf("\t- setup time\n");
@@ -192,6 +192,10 @@ void setup(void)
 	alt_printf("\t- parsing app\n");
 	app = parse_executable(APP_PID, (void*)app_bin);
 
+#ifdef SECURITY
+	uint8_t signature[16]; // Holder for calculating MAC signature
+	uint8_t * ptr_app;
+
 	/* Calculate mac of app and store in signature */
 	ptr_app = (void *)(app_bin + HEADER_SIZE);
 	calc_sig(ptr_app, app_bin_len - HEADER_SIZE, signature);
@@ -199,11 +203,12 @@ void setup(void)
 	alt_printf("\t- verifying app... ");
   	/* Authentication, compares provided signature with calculated signature and setup app if successfull */
 	if (comp_sig((void *)app_bin, signature) != 1){
-    	alt_printf("FAIL!\n");
+    	alt_printf("FAIL!\n\t- Log: unmatching signature\n\t- Action: app will not be started\n");
 		return;
   	}
     	
 	alt_printf("SUCCESS!\n");
+#endif /* SECURITY */
 
   	/* Load app to allocated memory */
 	alt_printf("\t- load app\n");
@@ -225,30 +230,43 @@ void setup(void)
 	s3k_yield();
 
 	/* Start app */
-	alt_printf("[MON]\tResuming app...\n");
+	alt_printf("\n[MON]\tResuming app...\n");
 	capman_mresume(APP_PID);
 
 	/* Wait for app to respond */
 	s3k_recv(soccaps[0], recv_buf, -1ull, &tag);
-	recv_buf[0] == -1ull ? alt_printf("[MON]\tApp setup success! Received: 0x%X\n", recv_buf[0]) : alt_printf("[MON]\tApp setup failed! 0x%X\n", recv_buf[0]);
+	recv_buf[0] == -1ull ? alt_printf("\n[MON]\tApp setup success! Received: 0x%X\n", recv_buf[0]) : alt_printf("\n[MON]\tApp setup failed! 0x%X\n", recv_buf[0]);
+	app_running = true;
 }
 
 void loop(void)
 {
 	static uint8_t iloop = 0;
 	union s3k_cap pmp;
+	uint64_t err;
 
-	alt_printf("[MON]\tLoop #0x%X\n", iloop++);
+	alt_printf("\n[MON]\tLoop #0x%X\n", iloop++);
+
+	while (!(app_running)) {
+		s3k_yield();
+	}
 
 	/* Yields until msg read from buffer */	
 	s3k_recv(soccaps[0], recv_buf, 0x30, &tag);
 
 	switch (recv_buf[0]) {
+		case -1ull:
+			alt_printf("\n[MON]\tApp finished execution, nothing more to do...\n");
+			app_running = false;
+			break;
 		case 0x00:
-			alt_printf("[MON]\tNo msg from app\n");
+			alt_printf("\n[MON]\tApp successfully handled an exception\n");
+			break;
+		case 0x01:
+			alt_printf("\n[MON]\tApp failed to handle an exception\n");
 			break;
 		case 0x02:
-			alt_printf("[MON]\tApp requests to update PMP permissions\n");
+			alt_printf("\n[MON]\tApp requests to update PMP permissions\n");
 			capman_update();
 
 			pmp = capman_get(0x30);
@@ -264,10 +282,11 @@ void loop(void)
 
 			uint64_t begin = s3k_pmp_napot_begin(pmp.pmp.addr);
 			uint64_t end = s3k_pmp_napot_end(pmp.pmp.addr);
-			uint64_t rwx = pmp.pmp.cfg;
+			uint64_t rwx = pmp.pmp.cfg & 0x7;
 			alt_printf("\t- Log: old pmp{begin=0x%X,end=0x%X,rwx=0x%X}\n", begin, end, rwx);
-			alt_printf("\t- Log: new pmp{begin=0x%X,end=0x%X,rwx=0x%X}\n", recv_buf[1], recv_buf[2], recv_buf[3]);
+			alt_printf("\t- Log: new pmp{begin=0x%X,end=0x%X,rwx=0x%X}\n", begin, end, recv_buf[3]);
 
+#ifdef SECURITY
 			/* Check if both W and X permissions are requested */	
 			if (recv_buf[3] & 0x02 && recv_buf[3] & 0x04) { 
 				alt_printf("\t- Log: W and X permissions forbidden\n", recv_buf[3]);
@@ -279,26 +298,40 @@ void loop(void)
 
 			/* Check if X permission is requested */
 			if (recv_buf[3] & 0x04) {
-				//uint8_t signature[16];
-				//uint8_t * ptr_code;
+				uint8_t signature[16];
+				uint8_t * ptr_sig = (uint8_t*)recv_buf[1];
+				uint8_t * ptr_code = ptr_sig + 0x20;
+				uint64_t code_size = *((uint64_t *)(ptr_sig + 0x10));
 
-				if (false) {
+				calc_sig(ptr_code, code_size, signature);
+
+				alt_printf("\t- Log: verifying code... ");
+				if (comp_sig(ptr_sig, signature) != 1) {
+    				alt_printf("FAIL!\n");
 					recv_buf[0] = 0x01; // verification failed
 					s3k_send(soccaps[1], recv_buf, 0x30, false);
 					capman_update();
 					break;
 				}
+
+				alt_printf("SUCCESS!\n");
+			}
+#endif
+
+			if ((err = capman_update_pmp(0x30, begin, end, recv_buf[3])) != 0) {
+				alt_printf("\t- Log: PMP update failed\n");
+				recv_buf[0] = err;
+				s3k_send(soccaps[1], recv_buf, 0x30, false);
+				break;
 			}
 
-			capman_update_pmp(0x30, begin, end, recv_buf[3]);
+			alt_printf("\t- Log: PMP successfully updated\n");
+
 			recv_buf[0] = 0x00;
 			s3k_send(soccaps[1], recv_buf, 0x30, false);
 			capman_update();
 			break;
-		case 0x01:
-			alt_printf("[MON]\tApp has handled an exception\n");
-			break;
 		default:
-			alt_printf("[MON]\tMsg from app\n\ttag:%X msg=%X,%X,%X,%X\n", tag, recv_buf[0], recv_buf[1], recv_buf[2], recv_buf[3]);
+			alt_printf("\n[MON]\tMsg from app\n\ttag:%X msg=%X,%X,%X,%X\n", tag, recv_buf[0], recv_buf[1], recv_buf[2], recv_buf[3]);
 	}
 }

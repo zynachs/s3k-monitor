@@ -6,6 +6,8 @@
 #define sectioninfo_size 8 
 #define header_size 512
 
+//#define BREAK
+
 void main() {
 
 	uint8_t *app_bin = NULL;
@@ -36,6 +38,13 @@ void main() {
 		uint8_t signature[16];
 		// calculate MAC signature of app binary
 		calc_sig(app_bin, bufsize, signature);
+
+#ifdef BREAK
+		// break signature
+		signature[0] = 0xFF;
+		signature[1] = 0xFF;
+#endif
+
 		// append signature to new file
 		fwrite(signature, sizeof(uint8_t), signature_size, new_file_ptr);
 
