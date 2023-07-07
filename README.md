@@ -86,7 +86,7 @@ This repository consists of mainly two applications: *monitor* and *app*. The mo
 > This repository **DEPENDS** on and expects that it resides in the same parent folder as [kth-step/s3k](https://github.com/kth-step/s3k).
 
 1. Clone both repositories.
-2. Checkout step-kth/s3k to commit `c0b78005261f4725be71e103f70e61b0a8a2fee2`
+2. Checkout kth-step/s3k to commit `c0b78005261f4725be71e103f70e61b0a8a2fee2`
 3. Make sure that they are in the same parent folder.
 4. Cd into s3k-monitor
 
@@ -98,7 +98,7 @@ git checkout c0b7800
 cd ../s3k-monitor
 ```
 
-4. Install prerequisite packages and tools, build from source or install from package manager. The links below are to the sources. the code block is an example of installing with the apt package manager on Ubuntu.
+4. Install prerequisite packages and tools; build from source or install from package manager. The links below are to the sources. the code block is an example of installing with the apt package manager on Ubuntu. We recommend building from source with the versions written in [Required Software](#required-software)
    - [RISC-V GNU Compiler Toolchain](https://github.com/riscv-collab/riscv-gnu-toolchain.git)
    - [QEMU](https://github.com/qemu/qemu)
 
@@ -110,7 +110,7 @@ sudo apt install -y gcc-riscv64-unknown-elf qemu-system-misc
 5. Compile kernel, monitor and app.
 
 ```shell
-make
+make all
 ```
 6. Execute kernel, monitor and app with qemu and launch a GDB live debugging session.
 
@@ -118,32 +118,11 @@ make
 make qemu
 ```
 
-7. In a separate terminal read output by connecting with netcat or telnet.
-
-```shell
-nc -v localhost 4321
-telnet localhost 4321
-```
-
-8. Add debugging information during execution.
-```shell
-make clean_repo
-make CLIFLAG=debug
-make qemu
-```
-
-9. Execute test (existing tests: 1, 2, 3).
-```shell
-make clean_repo
-make CLIFLAG=testX
-make qemu
-```
-
 ## Memory layout
 
 The kernel does not use virtual memory and does not have an MMU. It uses physical memory addresses and MPU (Memory Protection Unit).
 
->The s3k kernel is emulated on the builtin *virt* hardware board. The following information is dependant on this hardware.
+>The s3k kernel is emulated on QEMU's builtin *virt* hardware board. The following information is dependant on this hardware.
 
 ```
                                             ┌─────────────┬─────────┐

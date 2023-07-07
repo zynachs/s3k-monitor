@@ -65,8 +65,8 @@ clean_deep: clean clean_s3k
 
 clean:
 	rm -rf $(BUILD)
-	rm inc/s3k.h
-	rm lib/libs3k.a
+	rm -rf inc/s3k.h
+	rm -rf lib/libs3k.a
 
 clean_s3k:
 	${MAKE} -C ../s3k clean
