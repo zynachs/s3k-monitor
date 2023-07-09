@@ -9,7 +9,10 @@ docker inspect $IMAGE >/dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo -e "Docker image \"$IMAGE\" does not exist in local registry. Pulling from internet..."
     docker pull $IMAGE 
-    [ $? -ne 0 ] && echo "Failed to pull image."; exit
+    if [ $? -ne 0 ]; then 
+        echo "Failed to pull image.";
+        exit
+    fi
 fi
 
 uid=$(id -u)
