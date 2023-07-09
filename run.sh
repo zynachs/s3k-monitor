@@ -2,23 +2,14 @@
 
 # Script to build and run s3k-monitor within a docker container 
 
-function load_image() {
-    if [ ! -f "$IMAGE.tgz" ]; then
-        echo -e "\"$IMAGE.tgz\" does not exist in current directory."
-        return 1
-    fi
-    docker load < $IMAGE.tgz
-    return 0;
-}
-
-IMAGE=s3k-monitor-cc
+IMAGE=ghcr.io/zynachs/s3k-monitor-cc:latest
 
 docker inspect $IMAGE >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
-    echo -e "Docker image \"$IMAGE\" does not exist. Attempting to load it..."
-    load_image
-    [ $? -ne 0 ] && echo "Exiting."; exit
+    echo -e "Docker image \"$IMAGE\" does not exist in local registry. Pulling from internet..."
+    docker pull $IMAGE 
+    [ $? -ne 0 ] && echo "Failed to pull image."; exit
 fi
 
 uid=$(id -u)
