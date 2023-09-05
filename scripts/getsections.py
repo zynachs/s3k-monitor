@@ -1,3 +1,5 @@
+import sys
+
 # classes to access elf file
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import Section
@@ -24,11 +26,19 @@ def get_permissions(section_name):
         return "0x3"
     else:
         return
+    
+if len(sys.argv) < 2: 
+    print("Too few arguments provided.")
+    exit() 
+
+input_file = sys.argv[1]
+output_file = input_file.replace(".elf", ".txt")
+print(input_file, output_file)
 
 # open elf file
-appelf = ELFFile(open("build/app.elf", 'rb'))
+appelf = ELFFile(open(input_file, 'rb'))
 # open output files
-output = open('build/sectionsinfo.txt', 'w')
+output = open(output_file, 'w')
 
 # naming sections
 text_name = ".text"

@@ -2,7 +2,7 @@ void mal_putchar(void) {
     /* Pointer to memory address of UART output, equivalent to putchar to stdout */
     char * ptr = (void *)0x10000000; 
 
-    /* Translates to the string "Executing from out of bounds!" */
+    /* Translates to the string "Executing from NEW code!" */
     *ptr = 0x45;
     *ptr = 0x78;
     *ptr = 0x65;

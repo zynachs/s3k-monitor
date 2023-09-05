@@ -92,9 +92,13 @@ lib/libs3k.a: $(wildcard $(S3K_PATH)/api/*.c) inc/s3k.h
 qemu: all
 	./scripts/qemu.sh $(BUILD)/s3k.elf $(BUILD)/monitor.bin
 
-# Generates payload used in app, see ./scripts/genpayload.sh
-genpayload:
-	./scripts/genpayload.sh
+# Creates directory for storing compiled payloads
+$(BUILD)/payloads:
+	@mkdir -p $@
+
+# Generates payload used in app, see scripts/genpayload.sh and scripts/gensig.sh
+genpayload: $(BUILD)/payloads $(BUILD)/app_format_sig
+	scripts/genpayload.sh
 
 # Generate debug files
 debug: $(BUILD)/monitor.dbg $(BUILD)/app.dbg
@@ -115,7 +119,7 @@ $(BUILD)/%.S.o: %.S
 MONITOR_SRCS=$(wildcard monitor/*) $(COMMON_SRC)
 MONITOR_LDS=misc/default.lds
 MONITOR_DEPS+=$(patsubst %, $(BUILD)/%.d, $(MONITOR_SRCS))
-build/monitor/payload.S.o: build/app_format.bin
+build/monitor/payload.S.o: $(BUILD)/app.fmt.bin
 $(BUILD)/monitor.elf: $(patsubst %, $(BUILD)/%.o, $(MONITOR_SRCS)) lib/libs3k.a 
 	@mkdir -p ${@D}
 	@printf "CC $@\n"
@@ -130,10 +134,18 @@ $(BUILD)/app.elf: $(patsubst %, $(BUILD)/%.o, $(APP_SRCS)) lib/libs3k.a
 	@printf "CC $@\n"
 	@$(CC) ${CLIFLAG} $(LDFLAGS) -T$(APP_LDS) -o $@ $^
 
-build/app_format.bin: build/app.bin
-	gcc scripts/app_format.c monitor/codeauth.c monitor/aes128.c -Iinc -o build/app_format.o
-	python3 scripts/getsections.py
-	./build/app_format.o
+# Make tool for formating app binaries with header
+$(BUILD)/app_format: scripts/app_format.c monitor/codeauth.c monitor/aes128.c
+	gcc -Iinc -o $@ $^
+
+# Make tool for formating code with signature
+$(BUILD)/app_format_sig: scripts/app_format_sig.c monitor/codeauth.c monitor/aes128.c
+	gcc -Iinc -o $@ $^
+
+# Format app
+$(BUILD)/app.fmt.bin: $(BUILD)/app_format $(BUILD)/app.elf $(BUILD)/app.bin
+	python3 scripts/getsections.py $(BUILD)/app.elf
+	$< $(BUILD)/app.bin
 
 # Make kernel
 $(BUILD)/s3k.elf: ${CONFIG_H}

@@ -7,8 +7,6 @@
 #include "../config.h"
 
 #define signature_size 16 
-#define sectioninfo_size 8 
-#define header_size 512
 
 void main(int argc, char * argv[]) {
 
@@ -24,7 +22,6 @@ void main(int argc, char * argv[]) {
 	char filename[64];
 	char extension[64];
 	char output_file[64];
-	char info_file[64];
 
 	strcpy(input_file, argv[1]);
 
@@ -33,18 +30,11 @@ void main(int argc, char * argv[]) {
 
 	/* creates name for output file */
 	strcpy(output_file, filename);
-	strcat(output_file, ".fmt.");
+	strcat(output_file, ".sig.");
 	strcat(output_file, extension);
-
-	/* creates name for sectionsfile */
-	strcpy(info_file, filename);
-	strcat(info_file, ".txt");
 
     // open app binary for reading
     FILE* file_ptr = fopen(input_file, "rb");
-
-	// open file with sections info
-	FILE* sectioninfo_ptr = fopen(info_file,"r");
 
 	// create and open new file, the formated binary
 	FILE* new_file_ptr = fopen(output_file, "wb");
@@ -76,18 +66,6 @@ void main(int argc, char * argv[]) {
 
 		// append signature to new file
 		fwrite(signature, sizeof(uint8_t), signature_size, new_file_ptr);
-
-		// append sections info
-		char line[18];
-		while(fgets(line, sizeof(line), sectioninfo_ptr)){
-			printf("%lx", strtol(line, NULL, 16));
-			long converted_value = strtol(line, NULL, 16);
-			fwrite(&converted_value, sizeof(uint8_t), sectioninfo_size, new_file_ptr);
-			puts("");
-		}
-
-		// move file cursor to end of header
-		fseek (new_file_ptr, header_size, SEEK_SET);
 
 		// append binary to the new file bytewise
 		fwrite(app_bin, sizeof(uint8_t), bufsize, new_file_ptr);
