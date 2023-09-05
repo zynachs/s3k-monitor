@@ -1,3 +1,5 @@
+/* Optimized linker script used for MONITOR, not compatible with PMP */
+
 OUTPUT_ARCH("riscv")
 
 ENTRY(_start)

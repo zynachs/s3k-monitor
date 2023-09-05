@@ -28,7 +28,7 @@ def get_permissions(section_name):
 # open elf file
 appelf = ELFFile(open("build/app.elf", 'rb'))
 # open output files
-output = open('scripts/sectionsinfo.txt', 'w')
+output = open('build/sectionsinfo.txt', 'w')
 
 # naming sections
 text_name = ".text"

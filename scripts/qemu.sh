@@ -72,7 +72,7 @@ sleep 1
 tmux split-pane -bfh -p75 "riscv64-unknown-elf-gdb -x $GDBINIT"
 
 # Print help message in tmux
-tmux new-window -n help 'echo -ne "\
+tmux new-window -n help 'echo "\
 Welcome to the live debug session of s3k-monitor!
 =================================================
 

@@ -1,12 +1,13 @@
-#include "../inc/aes128.h"
-#include "../inc/code-auth.h"
+#include "codeauth.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+/* config file for testing */
+#include "../config.h"
+
 #define signature_size 16 
 #define sectioninfo_size 8 
 #define header_size 512
-
-//#define BREAK
 
 void main() {
 
@@ -16,7 +17,7 @@ void main() {
     // open app binary for reading
     FILE* file_ptr = fopen("build/app.bin", "rb");
 	// open file with sections info
-	FILE* sectioninfo_ptr = fopen("scripts/sectionsinfo.txt","r");
+	FILE* sectioninfo_ptr = fopen("build/sectionsinfo.txt","r");
 	// create and open new file, the formated binary
 	FILE* new_file_ptr = fopen("build/app_format.bin", "wb");
 
@@ -39,7 +40,7 @@ void main() {
 		// calculate MAC signature of app binary
 		calc_sig(app_bin, bufsize, signature);
 
-#ifdef BREAK
+#ifdef SIG_BROKEN
 		// break signature
 		signature[0] = 0xFF;
 		signature[1] = 0xFF;

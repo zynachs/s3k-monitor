@@ -4,13 +4,13 @@
 #include "capman.h"
 #include "payload.h"
 #include "s3k.h"
-#include "aes128.h"
-#include "code-auth.h"
+#include "codeauth.h"
 
 #include <stdbool.h>
 #include <string.h>
 
-#define SECURITY
+/* config file for testing */
+#include "../config.h"
 
 #define MONITOR_PID 0
 #define APP_PID 1
@@ -187,6 +187,12 @@ void setup(void)
 	/* Setup memory and time */
 	alt_printf("\t- setup time\n");
 	setup_time_slices();
+
+#ifdef SECURITY
+	alt_printf("\t- SECURITY on\n");
+#else
+	alt_printf("\t- SECURITY off\n");
+#endif
 
 	/* Parse app */
 	alt_printf("\t- parsing app\n");

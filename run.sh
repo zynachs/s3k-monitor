@@ -15,6 +15,12 @@ if [ $? -ne 0 ]; then
     fi
 fi
 
+if [ $# -eq 0 ]; then
+    COMMAND="qemu"
+else
+    COMMAND="$1"
+fi
+
 uid=$(id -u)
 gid=$(id -g)
 
@@ -23,4 +29,4 @@ docker run --rm -it \
     --mount type=bind,source="$(pwd)",target=/work/s3k-monitor \
     --mount type=bind,source="$(pwd)"/../s3k,target=/work/s3k \
     $IMAGE \
-    qemu
+    $COMMAND

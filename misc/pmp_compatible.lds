@@ -1,3 +1,5 @@
+/* Linker script which links a binary compatible with PMP intended for APP (incredibly bloated and non-optimized) */
+
 OUTPUT_ARCH("riscv")
 
 ENTRY(_start)

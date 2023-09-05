@@ -8,6 +8,7 @@ export OBJDUMP=${RISCV_PREFIX}objdump
 BUILD?=build
 S3K_PATH?=../s3k
 CONFIG_H?=misc/config.h
+COMMON_SRC?=$(wildcard common/*)
 
 # Compilation flags
 CFLAGS+=\
@@ -48,6 +49,10 @@ OCFLAGS=\
 
 # Build all
 all: options api $(BUILD)/monitor.bin $(BUILD)/s3k.elf debug
+
+# Run 
+run: all
+	./run.sh
 
 # Prints build settings
 options:
@@ -107,17 +112,17 @@ $(BUILD)/%.S.o: %.S
 	@$(CC) $(ASFLAGS) -MMD -c -o $@ $<
 
 # Monitor 
-MONITOR_SRCS=monitor/monitor.c monitor/payload.S common/start.S
+MONITOR_SRCS=$(wildcard monitor/*) $(COMMON_SRC)
 MONITOR_LDS=misc/default.lds
 MONITOR_DEPS+=$(patsubst %, $(BUILD)/%.d, $(MONITOR_SRCS))
 build/monitor/payload.S.o: build/app_format.bin
-$(BUILD)/monitor.elf: $(patsubst %, $(BUILD)/%.o, $(MONITOR_SRCS)) lib/libs3k.a
+$(BUILD)/monitor.elf: $(patsubst %, $(BUILD)/%.o, $(MONITOR_SRCS)) lib/libs3k.a 
 	@mkdir -p ${@D}
 	@printf "CC $@\n"
 	@$(CC) ${CLIFLAG} $(LDFLAGS) -T$(MONITOR_LDS) -o $@ $^
 
 # App
-APP_SRCS=app/app.c common/start.S
+APP_SRCS=$(wildcard app/*) $(COMMON_SRC)
 APP_LDS=misc/pmp_compatible.lds
 APP_DEPS+=$(patsubst %, $(BUILD)/%.d, $(APP_SRCS))
 $(BUILD)/app.elf: $(patsubst %, $(BUILD)/%.o, $(APP_SRCS)) lib/libs3k.a
@@ -126,9 +131,9 @@ $(BUILD)/app.elf: $(patsubst %, $(BUILD)/%.o, $(APP_SRCS)) lib/libs3k.a
 	@$(CC) ${CLIFLAG} $(LDFLAGS) -T$(APP_LDS) -o $@ $^
 
 build/app_format.bin: build/app.bin
-	gcc scripts/app_format.c -o scripts/app_format.o
+	gcc scripts/app_format.c monitor/codeauth.c monitor/aes128.c -Iinc -o build/app_format.o
 	python3 scripts/getsections.py
-	./scripts/app_format.o
+	./build/app_format.o
 
 # Make kernel
 $(BUILD)/s3k.elf: ${CONFIG_H}
@@ -143,7 +148,7 @@ $(BUILD)/s3k.elf: ${CONFIG_H}
 	@printf "OBJCOPY $< $@\n"
 	@${OBJCOPY} ${OCFLAGS} -O binary $< $@
 
-# Create assebly dump from elf
+# Create assembly dump from elf
 %.da: %.elf
 	@printf "OBJDUMP $< $@\n"
 	@${OBJDUMP} -d $< > $@
@@ -155,4 +160,4 @@ $(BUILD)/s3k.elf: ${CONFIG_H}
 
 .PHONY: all api clean clean_repo clean_s3k qemu s3k.elf genpayload
 
--include $(DEPS)
+-include $(MONITOR_DEPS) $(APP_DEPS)

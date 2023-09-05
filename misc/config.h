@@ -1,4 +1,5 @@
-// See LICENSE file for copyright and license details.
+// Configuration for s3k kernel
+
 #pragma once
 
 /* Number of processes. */
@@ -22,6 +23,3 @@
 #define NCHANNEL 8 
 
 #define NDEBUG
-
-/* Uncomment to enable memory protection */
-// #define MEMORY_PROTECTION

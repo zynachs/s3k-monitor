@@ -18,4 +18,4 @@
 
 # Files to be ignored
 inc/s3k.h
-scripts/sectionsinfo.txt
+build/
