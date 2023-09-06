@@ -50,9 +50,7 @@ OCFLAGS=\
 # Build all
 all: options api $(BUILD)/monitor.bin $(BUILD)/s3k.elf debug
 
-# Run 
-run: all
-	./run.sh
+run: qemu
 
 # Prints build settings
 options:
@@ -164,6 +162,6 @@ $(BUILD)/s3k.elf: ${CONFIG_H}
 	@printf "OBJCOPY $< $@\n"
 	@${OBJCOPY} --only-keep-debug $< $@
 
-.PHONY: all api clean clean_repo clean_s3k qemu s3k.elf genpayload format_tools app_format
+.PHONY: all api clean clean_repo clean_s3k qemu s3k.elf genpayload format_tools app_format run
 
 -include $(MONITOR_DEPS) $(APP_DEPS)

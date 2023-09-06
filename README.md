@@ -22,7 +22,17 @@ The project's goal is to implement security features into [kth-step/s3k](https:/
     - [Notable folders and files:](#notable-folders-and-files)
   - [Dependencies and compatibility](#dependencies-and-compatibility)
     - [Required software:](#required-software)
+      - [Option 1](#option-1)
+      - [Option 2](#option-2)
   - [Compiling and running](#compiling-and-running)
+    - [User guide](#user-guide)
+      - [GIF Demo](#gif-demo)
+      - [Instructions:](#instructions)
+    - [Optional notes](#optional-notes)
+      - [Build docker image locally](#build-docker-image-locally)
+      - [Download docker image manually](#download-docker-image-manually)
+      - [Change configuration for testing](#change-configuration-for-testing)
+      - [Modify persistent GDB breakpoints](#modify-persistent-gdb-breakpoints)
   - [Memory layout](#memory-layout)
 ---
 
@@ -42,44 +52,97 @@ This repository consists of mainly two applications: *monitor* and *app*. The mo
 
 ### Notable folders and files:
 
+<details open>
+<summary>Dropdown tab</summary>
+
 | Folder/File | Description |
 | --- | --- |
 | [app/](./app/) | Contains files which are unique to app. |
-| [app/app.c](./app/app.c) | Source file. |
-| [app/app.lds](./app/app.lds) | Linker script. |
-| [common/](./common/) | Contains assembly files which are shared between monitor and app. | 
+| [app/altmem.c](./app/altmem.c) | Source file for memory management. |
+| [app/app.c](./app/app.c) | Source file for app main code. |
+| [app/test.c](./app/test.c) | Source file for test code. |
+| [app/trap.c](./app/trap.c) | Source file for trap handler code. |
+| [build/](./build/) | Contains the projects compiled files and debug information. | 
+| [common/](./common/) | Contains assembly and c files which are shared between monitor and app. | 
+| [img/](./img/) | Contains images used in markdown files. | 
 | [inc/](./inc/) | Contains header files which are shared between monitor and app. | 
 | [lib/](./lib/) | Contains header archive files which are shared between monitor and app. | 
 | [misc/config.h](./misc/config.h) | Header file for compiling the kernel |
-| [misc/default.ld](./misc/default.ld) | Default linker script. Does not comply with PMP. |
-| [monitor/](./monitor/) | Contains files which are unique to monitor |
-| [monitor/monitor.c](./monitor/monitor.c) | Source file. |
-| [monitor/monitor.lds](./monitor/monitor.lds) | Linker script. |
-| [scripts/](./scripts/) | Contains helpful tools |
-| [scripts/payloads/](./scripts/payloads/) | Contains C source files which are used by genpayload.sh to create raw machine code. |
-| [scripts/breakpoints.txt](./scripts/breakpoints.txt) | Text file containing one breakpoint per line GDB which is executed in qemu.sh |
-| [scripts/genpayload.sh](./scripts/genpayload.sh) | Bash script which generates a comma-seperated list of raw machine code in 0x notation from C source files in scripts/payloads/. |
-| [scripts/qemu.sh](./scripts/qemu.sh) | Bash script which emulates the kernel, monitor and app with qemu and spawns a gdb live debugging prompt. Utilizes tmux.|
-| [scripts/riscvpmp.py](./scripts/riscvpmp.py) | Python script which translates a pmpaddr to start and end address. |
-| [scripts/riscvpmpinv.py](./scripts/riscvpmpinv.py) | Python script which translates a start and end address to a pmpaddr. |
-| [Makefile](./Makefile) | Root Makefile, includes all other makefiles. Used to compile and execute the repository files |
-| [project-proposal.md](./project-proposal.md) | Original project proposal, 2023-03-02. |
+| [misc/default.lds](./misc/default.lds) | Default linker script intended for linking monitor. Incompatible with PMP. |
+| [misc/pmp_compatible.lds](./misc/pmp_compatible.lds) | Linker script intended for linking app. Compatible with PMP. |
+| [monitor/](./monitor/) | Contains files which are unique to monitor. |
+| [monitor/aes128.c](./monitor/aes128.c) | Source file for cryptography functions. |
+| [monitor/codeauth.c](./monitor/codeauth.c) | Source file for signature functions. |
+| [monitor/monitor.c](./monitor/monitor.c) | Source file for monitor main code. |
+| [monitor/payload.S](./monitor/payload.S) | Source file for inserting app binary into monitor binary. |
+| [tools/](./tools/) | Contains tools used for various functionality in the repository. |
+| [tools/build/](./tools/build/) | Contains compiled files and debug information for tools. |
+| [tools/payloads/](./tools/payloads/) | Contains C source files used as payloads in app to test the monitors functionality. |
+| [tools/app_format_sig.c](./tools/app_format_sig.c) | Source file for generating signatures for binaries. |
+| [tools/app_format.c](./tools/app_format.c) | Source file for adding headers to binaries intended for the monitor. Signature and section information is included. |  
+| [tools/breakpoints.txt](./tools/breakpoints.txt) | Text file containing one breakpoint per line for GDB debugging. |
+| [tools/genpayload.sh](./tools/genpayload.sh) | Bash script which compiles payloads into binary files and dumps their contents in hex. It also generates signatures for each payload. |
+| [tools/Makefile](./tools/Makefile) | Sub-Makefile used to compile tools. It is invoked recursively by the root Makefile. |
+| [tools/qemu.sh](./tools/qemu.sh) | Bash script which emulates the kernel, monitor and app with qemu and spawns a gdb live debugging prompt. Utilizes tmux.|
+| [tools/riscvpmp.py](./tools/riscvpmp.py) | Python script which translates a pmpaddr to start and end address. |
+| [tools/riscvpmpinv.py](./tools/riscvpmpinv.py) | Python script which translates a start and end address to a pmpaddr. |
+| [config.h](./config.h) | Header file used to configure settings in the repository. | 
+| [Dockerfile](./Dockerfile) | Dockerfile source which builds a build environment for the repository. A prebuilt image is provided on [Github](https://github.com/users/zynachs/packages/container/package/s3k-monitor-cc) | 
+| [Makefile](./Makefile) | Root Makefile used to compile and execute the entire repository |
+| [project-proposal.md](./project-proposal.md) | Original project proposal markdown source, 2023-03-02. |
+| [project-report.md](./project-report.md) | Final project report markdown source. |
+| [README.md](./README.md) | This document. |
+| [run.sh](./run.sh) | Quick-start script. Bash script which builds the repository within the docker build environment and runs it. |
 
+</details>
 
 ## Dependencies and compatibility
 
-> The development environment for this repository is Ubuntu Linux on [WSL](https://learn.microsoft.com/en-us/windows/wsl/install). It should be compatible with most Linux distributions on bare-metal installations or virtual machines.
+> **NOTE FROM DEVELOPER:** The development environment for this repository is Ubuntu Linux on [WSL](https://learn.microsoft.com/en-us/windows/wsl/install). It should be compatible with most Linux distributions but names of dependencies might differ.
 
 ### Required software:
+
+<details open>
+<summary>Dropdown tab</summary>
 
 | Software | Version | Source | Note | 
 | --- | --- | --- | --- | 
 | git | N/A | https://git-scm.com/ | - | 
 | GNU Make | N/A | https://www.gnu.org/software/make/ | - |
-| RISC-V GNU Compiler Toolchain | tag: 2023.02.21 | https://github.com/riscv-collab/riscv-gnu-toolchain/releases/tag/2023.02.21 | Only tested the specified version and compiled from source. Version in package manager might be outdated. |
-| QEMU | Release: 7.2.0 | https://github.com/qemu/qemu/releases/tag/v7.2.0 | Only tested the specified version and compiled from source. Version in package manager might be outdated. |
+| GNU Compiler | N/A | https://gcc.gnu.org/ | Standard compiler for native target. |
+| Python 3 | N/A | https://www.python.org/ | - |
 | kth-step/s3k | commit: c0b7800 | https://github.com/kth-step/s3k/commit/c0b78005261f4725be71e103f70e61b0a8a2fee2 | Only tested and compatible with the specified commit of s3k. |
 
+</details>
+
+> To build, test and run the repository there are two options. Option 1 is the recommended solution since it is simpler and quicker to get started. 
+
+#### Option 1
+
+With option 1, the repository is built and run within a docker container and thus requires docker. A prebuilt image is provided on [Github](https://github.com/users/zynachs/packages/container/package/s3k-monitor-cc) and it includes all the tools used to build and run the repository. You can also build your own docker image with the provided [Dockerfile](./Dockerfile).
+
+<details open>
+<summary>Dropdown tab</summary>
+
+| Software | Version | Source | Note | 
+| --- | --- | --- | --- | 
+| Docker | N/A | https://www.docker.com/ | - | 
+
+</details>
+
+#### Option 2
+
+With option 2, the repository is built and run with tools on your native system. The required tools are accessible through package managers but using them has resulted in bugs since they are outdated (according to the developers experience). Therefore we recommend building the tools from source with newer versions. The specified versions below have been used by the developers and are also used in the docker solution, see [Option 1](#option-1). Building these tools from source is a time consuming process and also error prone since the tools themselves have dependencies which if not present will omit functionality of the tools. 
+
+<details open>
+<summary>Dropdown tab</summary>
+
+| Software | Version | Source | Note | 
+| --- | --- | --- | --- | 
+| RISC-V GNU Compiler Toolchain | tag: 2023.02.21 | https://github.com/riscv-collab/riscv-gnu-toolchain/releases/tag/2023.02.21 | Only tested the specified version and compiled from source. Version in package manager might be outdated. |
+| QEMU | Release: 7.2.0 | https://github.com/qemu/qemu/releases/tag/v7.2.0 | Only tested the specified version and compiled from source. Version in package manager might be outdated. |
+
+</details>
 
 ## Compiling and running
 
@@ -87,75 +150,123 @@ This repository consists of mainly two applications: *monitor* and *app*. The mo
 
 1. Clone both repositories.
 2. Checkout kth-step/s3k to commit `c0b78005261f4725be71e103f70e61b0a8a2fee2`
-3. Make sure that they are in the same parent folder.
-4. Cd into s3k-monitor
 
 ```shell
 git clone https://github.com/zynachs/s3k-monitor.git
 git clone https://github.com/kth-step/s3k.git
-cd s3k
-git checkout c0b7800
-cd ../s3k-monitor
+cd s3k && git checkout c0b7800
 ```
 
-4. Install prerequisite packages and tools; build from source or install from package manager. The links below are to the sources. the code block is an example of installing with the apt package manager on Ubuntu. We recommend building from source with the versions written in [Required Software](#required-software)
-   - [RISC-V GNU Compiler Toolchain](https://github.com/riscv-collab/riscv-gnu-toolchain.git)
-   - [QEMU](https://github.com/qemu/qemu)
+4. Install prerequisite packages and tools.
 
 ```shell
-sudo apt update
-sudo apt install -y gcc-riscv64-unknown-elf qemu-system-misc
+# example installation with apt package manager
+apt update && apt install -y git make build-essential python3
 ```
+
+> [Option 1:](#option-1) install docker according to your [platform.](https://docs.docker.com/engine/install/)
+
+> [Option 2:](#option-2) build tools from source or install from package manager.
+> ```shell
+> # example installation with apt package manager
+> apt update && apt install -y gcc-riscv64-unknown-elf qemu-system-misc
+> ```
 
 5. Compile kernel, monitor and app.
 
-```shell
-make all
-```
+> [Option 1:](#option-1) execute make commands in container via [run.sh](./run.sh). Image is automatically downloaded from [Github](https://github.com/users/zynachs/packages/container/package/s3k-monitor-cc) if it does not exist locally.
+> ```shell
+> cd /path/to/s3k-monitor
+> ./run.sh all # equivalent to "make all" 
+> ```
+
+> [Option 2:](#option-2) execute make commands with native tools.
+> ```shell
+> cd /path/to/s3k-monitor
+> make all
+> ```
+
 6. Execute kernel, monitor and app with qemu and launch a GDB live debugging session.
 
+> [Option 1:](#option-1)
+> ```shell
+> cd /path/to/s3k-monitor
+> ./run.sh # equivalent to "make run" 
+> ```
+
+> [Option 2:](#option-2)
+> ```shell
+> cd /path/to/s3k-monitor
+> make run
+> ```
+
+### User guide
+
+The project is emulated on qemu and interacted with over a live GDB session. This is all wrapped up inside a tmux session which is created by the script [qemu.sh](./tools/qemu.sh). 
+
+#### GIF Demo
+
+![user-guide](./img/user-guide.gif)
+
+#### Instructions:
+* When the project is run it will spawn a tmux session in the current terminal.
+* The first page is a help page with some useful information.
+* Switch to the main page with `ctrl+b (release) n`. use the same keystroke to switch to the help page.
+* Left panel is GDB in tui mode.
+* Right panel is output from kernel, monitor and app.
+* Restart session with `ctrl+b (release) r`
+* Exit session with `ctrl+b (release) d`
+* `ctrl+c` will not exit tmux, it will interact as expected within the current application.
+
+### Optional notes
+
+#### Build docker image locally
+
+> Build duration >1h. May vary depending on internet speeds and system resources.  
+> Image size ~2.5GB
+ 
 ```shell
-make qemu
+cd /path/to/s3k-monitor
+docker build -t s3k-monitor-cc:local .sdfsdf
 ```
+
+#### Download docker image manually
+
+> Image size ~2.5GB
+```shell
+docker pull ghcr.io/zynachs/s3k-monitor-cc:latest
+```
+
+#### Change configuration for testing
+To change testing parameters of the project edit [config.h](./config.h). Instructions provided in comments.
+
+#### Modify persistent GDB breakpoints
+Initial breakpoints are set in [tools/breakpoints.txt](./tools/breakpoints.txt). Write one breakpoint per line and ONLY the value of the breakpoint: i.e. `app.c:loop` or `*0x80020000`, **NOT** `break app.c:loop` or `break *0x80020000`.
 
 ## Memory layout
 
 The kernel does not use virtual memory and does not have an MMU. It uses physical memory addresses and MPU (Memory Protection Unit).
 
->The s3k kernel is emulated on QEMU's builtin *virt* hardware board. The following information is dependant on this hardware.
+>The s3k kernel is emulated on QEMU's builtin *virt* hardware board. The following information is dependant on this virtual hardware.
 
 ```
-                                            ┌─────────────┬─────────┐
-                                            │   Address   │ Section │
-                                            ├─────────────┼─────────┤
-                                           >│ 0x8003_0000 │ ...     │
-                                          />│ [2K]        │ .stack  │
-┌─────────────┬────────────────────┐     / /│ 0x8001_F800 │ .stack  │
-│   Address   │       Memory       │    / / │ ...         │ ...     │
-├─────────────┼────────────────────┤   / /  │ 0x8002_3000 │ ...     │
-│ 0x8800_0000 │ ... (RAM END)      │  / /   │ [4K]        │ .bss    │
-│ ...         │ ...                │ / /    │ 0x8002_2000 │ .bss    │
-│ 0x8003_0000 │ ...                │/ /     │ [2K]        │ .rodata │
-│ [64K]       │ APP ---------------> /      │ 0x8002_1800 │ .rodata │
-│ 0x8002_0000 │ APP --------------->/       │ [2K]        │ .data   │
-│ [64K]       │ MONITOR ----------->\       │ 0x8002_1000 │ .data   │
-│ 0x8001_0000 │ MONITOR -----------> \      │ [4K]        │ .text   │ 
-│ [64K]       │ KERNEL             │\ \     │ 0x8002_0000 │ .text   │ 
-│ 0x8000_0000 │ KERNEL (RAM START) │ \ \    └─────────────┴─────────┘ 
-│ ...         │ ...                │  \ \   ┌─────────────┬─────────┐
-│ 0x1000_0100 │ ...                │   \ \  │   Address   │ Section │
-│ [256B]      │ UART               │    \ \ ├─────────────┼─────────┤
-│ 0x1000_0000 │ UART               │     \ >│ 0x8002_0000 │ ...     │
-│ ...         │ ...                │      \>│ [2K]        │ .stack  │      
-│ 0x0000_0000 │ ...                │        │ 0x8001_F800 │ .stack  │
-└─────────────┴────────────────────┘        │ ...         │ ...     │
-                                            │ 0x8001_9000 │ ...     │
-                                            │ [4K]        │ .bss    │
-                                            │ 0x8001_8000 │ .bss    │
-                                            │ [16K]       │ .rodata │
-                                            │ 0x8001_4000 │ .rodata │
-                                            │ [8K]        │ .data   │
-                                            │ 0x8001_2000 │ .data   │
-                                            │ [8K]        │ .text   │
-                                            │ 0x8001_0000 │ .text   │
-                                            └─────────────┴─────────┘
+┌─────────────┬────────────────────┐     /* sections statically aligned
+│   Address   │       Memory       │        to be compatible with pmp   */
+├─────────────┼────────────────────┤        ┌─────────────┬─────────┐ 
+│ 0x8800_0000 │ ... (RAM END)      │        │   Address   │ Section │ 
+│ ...         │ ...                │        ├─────────────┼─────────┤ 
+│ 0x8003_0000 │ ...                │        │ 0x8003_0000 │ ...     │ 
+│ [64K]       │ APP ----------------------->│ [4K]        │ .stack  │ 
+│ 0x8002_0000 │ APP ----------------------->│ 0x8001_F000 │ .stack  │ 
+│ [64K]       │ MONITOR            |        │ [28K]       │ .heap   │ 
+│ 0x8001_0000 │ MONITOR            |        │ 0x8002_8000 │ .heap   │  
+│ [64K]       │ KERNEL             │        │ [8K]        │ .bss    │  
+│ 0x8000_0000 │ KERNEL (RAM START) │        │ 0x8002_6000 │ .bss    │  
+│ ...         │ ...                │        │ [8K]        │ .rodata │
+│ 0x1000_0100 │ ...                │        │ 0x8002_4000 │ .rodata │
+│ [256B]      │ UART               │        │ [8K]        │ .data   │
+│ 0x1000_0000 │ UART               │        │ 0x8002_2000 │ .data   │
+│ ...         │ ...                │        │ [8K]        │ .text   │
+│ 0x0000_0000 │ ...                │        │ 0x8002_0000 │ .text   │
+└─────────────┴────────────────────┘        └─────────────┴─────────┘
+```

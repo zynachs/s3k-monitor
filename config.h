@@ -2,7 +2,8 @@
 
 //----------------------------------------------------
 
-/* App tests 
+/* App tests
+   Test code in app/app.c:test and app/test.c:*
    Instructions:
    - SET the line which matches the tests you wish to run.
    - DO NOT SET multiple lines simultaneously.
