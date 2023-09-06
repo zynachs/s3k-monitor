@@ -19,3 +19,5 @@
 # Files to be ignored
 inc/s3k.h
 build/
+tools/aes128.c
+tools/codeauth.c
