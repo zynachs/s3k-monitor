@@ -12,7 +12,7 @@
 
 void main(int argc, char * argv[]) {
 
-	uint8_t *app_bin = NULL;
+	uint8_t *app_buffer = NULL;
 	int bufsize;
 
 	if (argc < 2) {
@@ -50,23 +50,52 @@ void main(int argc, char * argv[]) {
 	FILE* new_file_ptr = fopen(output_file, "wb");
 
 	if (file_ptr != 0){
-    	// go to the end of binary
+
+/*		creating buffer containing header and app-binary		*/
+
+    	// set bufsize to size of binary + size of header
     	if (fseek(file_ptr, 0L, SEEK_END) == 0) {
-        	// get the size of the binary
-        	bufsize = ftell(file_ptr);
+        	bufsize = ((ftell(file_ptr))+ header_size);
 		}
 
-		// allocate memory for app-buffer 
-		uint8_t *app_bin = malloc(sizeof(uint8_t) * (bufsize + 1));
-		// move curser to beginning of file
+		// move curser back to beginning of file
 		fseek(file_ptr, 0L, SEEK_SET);
-		// copy contents of file to app buffer
-	    fread(app_bin, sizeof(uint8_t), bufsize, file_ptr);
+
+		// allocate memory for app-buffer 
+		app_buffer = malloc(sizeof(uint8_t) * (bufsize + 1));
+
+		// index to keep track of buffer pointer
+		size_t buffer_index = 0;
+		// expected max size of every line in sectionsinfo.txt
+    	char line[18];
+
+		// reading sections info into buffer
+    	while (buffer_index < header_size && (fgets(line, sizeof(line), sectioninfo_ptr) != NULL)) {
+			long converted_value = strtol(line, NULL, 16);
+        	memcpy(app_buffer + buffer_index, &converted_value, sectioninfo_size);
+        	buffer_index += sectioninfo_size;
+
+	        puts("");
+    	}
+    	// Fill the remaining space in app_buffer with zero
+    	while (buffer_index < header_size) {
+        	app_buffer[buffer_index] = 0;
+        	buffer_index++;
+    	}
+
+		// copy binary to app buffer
+	    fread(app_buffer + buffer_index, sizeof(uint8_t), bufsize - buffer_index, file_ptr);
+
+/*		generating signature of app-buffer		*/
 
 		// Holder for generating MAC signature
 		uint8_t signature[16];
-		// calculate MAC signature of app binary
-		calc_sig(app_bin, bufsize, signature);
+
+
+		// calculate MAC signature of app_buffer (header+binary)
+		calc_sig(app_buffer, bufsize, signature);
+
+/*		Putting together the formatted file		*/
 
 #ifdef SIG_BROKEN
 		// break signature
@@ -76,23 +105,15 @@ void main(int argc, char * argv[]) {
 
 		// append signature to new file
 		fwrite(signature, sizeof(uint8_t), signature_size, new_file_ptr);
-
-		// append sections info
-		char line[18];
-		while(fgets(line, sizeof(line), sectioninfo_ptr)){
-			long converted_value = strtol(line, NULL, 16);
-			fwrite(&converted_value, sizeof(uint8_t), sectioninfo_size, new_file_ptr);
-		}
-
 		// move file cursor to end of header
-		fseek (new_file_ptr, header_size, SEEK_SET);
+		fseek (new_file_ptr, signature_size, SEEK_SET);
+		// append header and binary to the new file bytewise
+		fwrite(app_buffer, sizeof(uint8_t), bufsize, new_file_ptr);
 
-		// append binary to the new file bytewise
-		fwrite(app_bin, sizeof(uint8_t), bufsize, new_file_ptr);
+/*		free buffer and close files		*/
 
 		// free app buffer
-		free(app_bin);
-
+		free(app_buffer);
 		// close files
 		fclose(file_ptr);
 		fclose(new_file_ptr);
