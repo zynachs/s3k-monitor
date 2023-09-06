@@ -24,11 +24,14 @@ Roberto Guanciale [(robertog@kth.se)](mailto:robertog@kth.se)
 
 ### Introduction
 
-Almost all software contains bugs and one of the most, if not the most, common type of software bug withing computer security is related to memory vulnerabilities.  Memory corruption, code corruption, control-flow hijacking are some examples of attacks which would allow an attacker to influence a system partially or completely. Fortunately, there exists protective mechanisms to counter these well-known attacks.
+Modern software systems are filled with bugs and security issues mostly as result of the sheer size and complexity of them, which also makes them hard to detect and prevent [[1]](#references). One idea to solve this issue is to implement strong security measures in the most privileged software, the operating system, which hopefully can prevent vulnerabilities in higher level applications from resulting in a system wide compromise. S3k is one such project which aims to create an OS kernel free from bugs, proven by formal methods. 
+
+One of the most common type of software bug within computer security is related to memory vulnerabilities [[2]](#references). Applications written in low level languages that are “memory unsafe” can enable an attacker to alter the program or even gain full control over the control-flow. Memory corruption, code corruption and control-flow hijacking are examples of attacks on memory vulnerabilities. Memory corruption is the start of any attack on memory, a small error in the code that gives an attacker the opportunity to modify the program. This can for example be to force an array pointer to unallocated memory and create a buffer overflow. In later stage this can be used to overwrite the program code which then becomes a code corruption attack. Another approach is control flow hijacking where the instruction pointer is manipulated to point towards code injected by the attacker. Fortunately, there are policy's that can be enforced to prevent this kind of attacks, and the goal of this project is to implement some of them to s3k.
+
 
 ### The security issue
 
-This project covers the prevention of code injection and execution of arbitrary code on s3k[[1]](#references). The problem to be solved consists of three parts, a malicious actor can write and execute arbitrary code if:
+This project covers the prevention of code injection and execution of arbitrary code on s3k. The problem to be solved consists of three parts, a malicious actor can write and execute arbitrary code if:
 1. a program can execute code from the memory intended for program data.
 2. a program can write code into the section of memory intended for instructions, i.e., the program can rewrite its own code.
 3. a program is not authenticated before executing.
@@ -37,7 +40,7 @@ This project aims to solve the problem by implementing the write xor execute pol
 
 ### Write xor execute policy
 
-Write xor execute is a policy which is achieved by combining the code integrity policy and the non-executable data policy. The code integrity policy enforces that memory intended for program code cannot be writable and the non-executable data policy enforces that memory intended for program data (such as stack and heap) cannot be executable. In summary, one piece of memory is *always* either writable or executable and never both at once.
+Write xor execute is a policy which is achieved by combining the code integrity policy and the non-executable data policy[[1]](#references). The code integrity policy enforces that memory intended for program code cannot be writable and the non-executable data policy enforces that memory intended for program data (such as stack and heap) cannot be executable. In summary, one piece of memory is *always* either writable or executable and never both at once.
 
 ### Software authentication
 
@@ -47,7 +50,7 @@ The purpose of software authentication is to ensures that the software has not b
 
 The project builds upon the kernel s3k which is developed for RISC-V. The kernel utilizes the concept of *capabilities* to administer process permissions. Capabilities can be understood intuitively by their name: it is a description of what a process is able to do. If a process attempt to perform an action which it does not have a capability for, the kernel will interrupt it. Each process can have multiple capabilities at the same time and of differing types, e.g. one capability might describe which CPU clock cycles it is allowed to run on and another which parts of memory is has access to. The latter type of capability is central to this project. 
 
-The project is mainly divided into two programs: (1) *monitor* and (2) *app*. Monitor will be administrating the app and enforcing the write xor execute policy ans software authentication. The purpose of the app is to test the implementation of the monitor. The overall design can be explained with [figure 1](#figure-1-overall-design-flowchart).
+The project is mainly divided into two programs: (1) *monitor* and (2) *app*. Monitor will be administrating the app and enforcing the write xor execute policy and software authentication. The purpose of the app is to test the implementation of the monitor. The overall design can be explained with [figure 1](#figure-1-overall-design-flowchart).
 
 ![image figure 1](./img/design_flow_chart.jpg)  
 #### *Figure 1: overall design flowchart*
@@ -85,17 +88,17 @@ The app's permissions to memory is controlled by capabilities that the monitor a
 #### *Figure 2: app memory layout*
 
 ### Authentication
-The technique implemented for generating signatures is by cipher block chaining message authentication code (cbc-mac), and the encryption method used in the block chaining is symmetric aes128. This method was not chosen because it is the most secure or best suited for the purpose, but because it was provided to us as a finished library and made implementing the concept of code authentication simpler. The scenario we have assumed present is that the monitor and distributor of the application share a secret key.
+The technique implemented for generating signatures is by cipher block chaining message authentication code (cbc-mac), and the encryption method used in the block chaining is symmetric aes128. This method was not chosen because it is the most secure or best suited for the purpose of this project, but because it was provided to us as a finished library and made implementing the concept of code authentication simpler. So, the scenario we have assumed present is that the monitor and distributor of the application share a secret key.
+
+To make the process of authentication as seamless and realistic as possible a custom file format has been created, the monitor and app need a common way to communicate signatures to one another, see [table 1](#table-1-map-of-file-header). The file header first stores the signature of 16 B. The signature is then followed by specific information for each section of the program, this is so the monitor can set up the right memory capabilities before running. The header section info covers text, data, rodata, bss, heap and stack.
 
 The code authentication is done before the application setup and every time the monitor changes the privileges of a memory segment from writable to executable. This is to ensure that the policy of code integrity is properly enforced. The process of authentication can be described with the following three steps:
 
-1.	The distributor calculates the cbc-mac of the code with the secret key, and formats the code in such a way that the initial 128b of the code contains the signature.
-2.	Before loading and setting up the app, the monitor calculates the cbc-mac of the code provided and matches it towards the one provided at distribution. Upon success the monitor starts setting up the app and if the authentication turns out unsuccessful the setup is aborted.
+1.  The distributor calculates the signature of the code with the secret key and formats the code with the common containing the signature.
+2.  Before setting up and starting the app, the monitor calculates the signature of the code provided and matches it towards the one provided by the distributor. Upon success the monitor starts setting up the app and if the authentication turns out unsuccessful the setup is aborted.
 3. If the app requires more memory during runtime, for example software updates, this can be done after another authentication of the new piece of code.
 
-To make the process of authentication as seamless and realistic as possible a custom file format has been created. As mentioned earlier the signature is stored in the first 16 B of the file. The signature is then followed by specific information for each section of the program, this is so the monitor can set up the right memory capabilities before running. The header section info covers text, data, rodata, bss, heap and stack. This information is parsed from app.elf by a python script getsections.py with the help of pyelftools. The sections info is then read by app_format.c which puts together a final file with the complete header. 
-
-A map over the file header:
+#### *table 1: map of file header*
 <style>
     table, th, td {
     border: 1px solid black;
@@ -133,7 +136,7 @@ A map over the file header:
 
 ### Elin Kårehagen
 
-Due to joining the course later than Zacharias and lacking some of the required prior knowledge, mostly programing in C, I early on felt it was hard to keep up and make a meaningful contribution. This led to us splitting the project into two separate but still very intertwined branches. I have focused on the process of code authentication. As described above the ARS128 library was provided to us as a resource for this project and a natural next step in this project would probably be to expand to asymmetric encryption. However I perceived this as too big of a project for me, so instead I continued with creating the file format for the application which was more of a challange in my degree of difficulty. The pieces of code I have produced for this project are genpayload.py, app_format.c and the small part in the monitor handling the process of authentication. I have also been lead on structuring this report. 
+Due to joining the course later than Zacharias and lacking some of the required prior knowledge, mostly programing in C, I early on felt it was hard to keep up and make a meaningful contribution. This led to us splitting the project into two separate but still very intertwined branches. I have focused on the process of code authentication. As described above the AES128 library was provided to us as a resource for this project and a natural next step in this project would probably be to expand to asymmetric encryption. However I perceived this as too big of a project for me, so instead I continued with creating the file format for the application which was more of a challange in my degree of difficulty. The pieces of code I have produced for this project are genpayload.py, app_format.c and the small part in the monitor handling the process of authentication. 
 
 ### Zacharias Terdin
 
@@ -141,3 +144,14 @@ Originally I was working alone on this project. I did the initial research and w
 
 
 ## References
+# References
+
+| Index | Reference |
+| --- | --- |
+| [1] |	KTH-STEP Group, "Separation Kernel," n.d. [Online]. Available: https://kth-step.github.io/projects/separation-kernel/. [Accessed 6 September 2023]. |
+| [2] | L. Szekeres, M. Payer, Tao Wei, and D. Song, “SoK: Eternal War in Memory,” in 2013 IEEE Symposium on Security and Privacy, 2013, pp. 48–62. doi: 10.1109/SP.2013.13. |
+| [3] | |
+| [4] | |
+| [5] | |
+
+  
