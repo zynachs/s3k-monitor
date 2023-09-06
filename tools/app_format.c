@@ -80,10 +80,8 @@ void main(int argc, char * argv[]) {
 		// append sections info
 		char line[18];
 		while(fgets(line, sizeof(line), sectioninfo_ptr)){
-			printf("%lx", strtol(line, NULL, 16));
 			long converted_value = strtol(line, NULL, 16);
 			fwrite(&converted_value, sizeof(uint8_t), sectioninfo_size, new_file_ptr);
-			puts("");
 		}
 
 		// move file cursor to end of header

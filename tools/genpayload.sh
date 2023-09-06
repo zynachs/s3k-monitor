@@ -7,11 +7,23 @@ function cleanup() {
 trap cleanup EXIT
 
 RISCV_PREFIX="riscv64-unknown-elf-"
-PAYLOAD_DIR=$(dirname -- "${BASH_SOURCE[0]}")/payloads
+
+PAYLOAD_DIR=$1
+BUILD=$2
+
+if [ -z "$PAYLOAD_DIR" ]; then
+	echo "PAYLOAD_DIR not provided as an argument."
+	exit 1
+fi
+
+if [ -z "$BUILD" ]; then
+	echo "BUILD not provided as an argument."
+	exit 1
+fi
+
 PAYLOADS=$(find $PAYLOAD_DIR -type f)
 TEMPOBJ=$(mktemp)
 TEMPBIN=$(mktemp)
-BUILD=build/payloads
 
 for f in $PAYLOADS; do
 	# Final destination for output
@@ -28,7 +40,7 @@ for f in $PAYLOADS; do
 	cp $TEMPBIN $DESTBIN
 
 	# Create signature for binary output
-	build/app_format_sig $DESTBIN
+	build/app_format_sig.elf $DESTBIN
 	
 	# Output the raw code into a series of bytes in comma-seperated 0x notation
     echo -en "SOURCE: $f\nSIG: $SIGBIN\n\t"

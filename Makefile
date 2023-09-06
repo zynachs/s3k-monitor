@@ -1,9 +1,9 @@
-POSIX:
+.POSIX:
 
-export RISCV_PREFIX ?= riscv64-unknown-elf-
-export CC=${RISCV_PREFIX}gcc
-export OBJCOPY=${RISCV_PREFIX}objcopy
-export OBJDUMP=${RISCV_PREFIX}objdump
+RISCV_PREFIX ?= riscv64-unknown-elf-
+CC=${RISCV_PREFIX}gcc
+OBJCOPY=${RISCV_PREFIX}objcopy
+OBJDUMP=${RISCV_PREFIX}objdump
 
 BUILD?=build
 S3K_PATH?=../s3k
@@ -72,6 +72,7 @@ clean:
 	rm -rf $(BUILD)
 	rm -rf inc/s3k.h
 	rm -rf lib/libs3k.a
+	$(MAKE) -C tools clean
 
 clean_s3k:
 	${MAKE} -C ../s3k clean
@@ -90,15 +91,11 @@ lib/libs3k.a: $(wildcard $(S3K_PATH)/api/*.c) inc/s3k.h
 
 # Run with qemu
 qemu: all
-	./scripts/qemu.sh $(BUILD)/s3k.elf $(BUILD)/monitor.bin
+	./tools/qemu.sh $(BUILD)/s3k.elf $(BUILD)/monitor.bin
 
-# Creates directory for storing compiled payloads
-$(BUILD)/payloads:
-	@mkdir -p $@
-
-# Generates payload used in app, see scripts/genpayload.sh and scripts/gensig.sh
-genpayload: $(BUILD)/payloads $(BUILD)/app_format_sig
-	scripts/genpayload.sh
+# Generates payload used in app, see tools/genpayload.sh and tools/gensig.sh
+genpayload:
+	$(MAKE) -C tools genpayload
 
 # Generate debug files
 debug: $(BUILD)/monitor.dbg $(BUILD)/app.dbg
@@ -134,18 +131,15 @@ $(BUILD)/app.elf: $(patsubst %, $(BUILD)/%.o, $(APP_SRCS)) lib/libs3k.a
 	@printf "CC $@\n"
 	@$(CC) ${CLIFLAG} $(LDFLAGS) -T$(APP_LDS) -o $@ $^
 
-# Make tool for formating app binaries with header
-$(BUILD)/app_format: scripts/app_format.c monitor/codeauth.c monitor/aes128.c
-	gcc -Iinc -o $@ $^
+format_tools:
+	$(MAKE) -C tools all
 
-# Make tool for formating code with signature
-$(BUILD)/app_format_sig: scripts/app_format_sig.c monitor/codeauth.c monitor/aes128.c
-	gcc -Iinc -o $@ $^
+$(BUILD)/app.txt: $(BUILD)/app.elf 
+	python3 tools/getsections.py $(BUILD)/app.elf
 
 # Format app
-$(BUILD)/app.fmt.bin: $(BUILD)/app_format $(BUILD)/app.elf $(BUILD)/app.bin
-	python3 scripts/getsections.py $(BUILD)/app.elf
-	$< $(BUILD)/app.bin
+$(BUILD)/app.fmt.bin: format_tools $(BUILD)/app.txt $(BUILD)/app.bin
+	tools/build/app_format.elf $(BUILD)/app.bin
 
 # Make kernel
 $(BUILD)/s3k.elf: ${CONFIG_H}
@@ -170,6 +164,6 @@ $(BUILD)/s3k.elf: ${CONFIG_H}
 	@printf "OBJCOPY $< $@\n"
 	@${OBJCOPY} --only-keep-debug $< $@
 
-.PHONY: all api clean clean_repo clean_s3k qemu s3k.elf genpayload
+.PHONY: all api clean clean_repo clean_s3k qemu s3k.elf genpayload format_tools app_format
 
 -include $(MONITOR_DEPS) $(APP_DEPS)

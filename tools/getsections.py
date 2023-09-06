@@ -33,7 +33,6 @@ if len(sys.argv) < 2:
 
 input_file = sys.argv[1]
 output_file = input_file.replace(".elf", ".txt")
-print(input_file, output_file)
 
 # open elf file
 appelf = ELFFile(open(input_file, 'rb'))
