@@ -8,7 +8,7 @@
 
 #define signature_size 16 
 #define sectioninfo_size 8 
-#define header_size 512
+#define sections_size 496
 
 void main(int argc, char * argv[]) {
 
@@ -55,7 +55,7 @@ void main(int argc, char * argv[]) {
 
     	// set bufsize to size of binary + size of header
     	if (fseek(file_ptr, 0L, SEEK_END) == 0) {
-        	bufsize = ((ftell(file_ptr))+ header_size);
+        	bufsize = ((ftell(file_ptr))+ sections_size);
 		}
 
 		// move curser back to beginning of file
@@ -70,15 +70,13 @@ void main(int argc, char * argv[]) {
     	char line[18];
 
 		// reading sections info into buffer
-    	while (buffer_index < header_size && (fgets(line, sizeof(line), sectioninfo_ptr) != NULL)) {
+    	while (buffer_index < sections_size && (fgets(line, sizeof(line), sectioninfo_ptr) != NULL)) {
 			long converted_value = strtol(line, NULL, 16);
         	memcpy(app_buffer + buffer_index, &converted_value, sectioninfo_size);
         	buffer_index += sectioninfo_size;
-
-	        puts("");
     	}
     	// Fill the remaining space in app_buffer with zero
-    	while (buffer_index < header_size) {
+    	while (buffer_index < sections_size) {
         	app_buffer[buffer_index] = 0;
         	buffer_index++;
     	}
@@ -105,8 +103,6 @@ void main(int argc, char * argv[]) {
 
 		// append signature to new file
 		fwrite(signature, sizeof(uint8_t), signature_size, new_file_ptr);
-		// move file cursor to end of header
-		fseek (new_file_ptr, signature_size, SEEK_SET);
 		// append header and binary to the new file bytewise
 		fwrite(app_buffer, sizeof(uint8_t), bufsize, new_file_ptr);
 
