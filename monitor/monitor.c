@@ -193,9 +193,9 @@ void setup(void)
 	app = parse_executable(APP_PID, (void*)app_bin);
 
 	/* Calculate mac of app and store in signature */
-	ptr_app = (void *)(app_bin + HEADER_SIZE);
-	calc_sig(ptr_app, app_bin_len - HEADER_SIZE, signature);
-  
+	ptr_app = (void *)(app_bin + SIGNATURE_SIZE);
+	calc_sig(ptr_app, app_bin_len - SIGNATURE_SIZE, signature);
+
 	alt_printf("\t- verifying app... ");
   	/* Authentication, compares provided signature with calculated signature and setup app if successfull */
 	if (comp_sig((void *)app_bin, signature) != 1){
