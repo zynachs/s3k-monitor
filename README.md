@@ -35,6 +35,18 @@ The project's goal is to implement security features into [kth-step/s3k](https:/
       - [Demo](#demo)
       - [Instructions](#instructions)
   - [Memory layout](#memory-layout)
+- [Instructions for tester](#instructions-for-tester)
+  - [Getting started](#getting-started)
+  - [Test 0](#test-0)
+    - [Summary](#summary)
+    - [Guide](#guide)
+  - [Tests 1-4](#tests-1-4)
+    - [Summary](#summary-1)
+    - [Guide](#guide-1)
+  - [Tests 5-7](#tests-5-7)
+    - [Summary](#summary-2)
+    - [Guide](#guide-2)
+  - [Tests 8-9](#tests-8-9)
 ---
 
 # Documentation
@@ -256,3 +268,93 @@ The kernel does not use virtual memory and does not have an MMU. It uses physica
 │ 0x0000_0000 │ ...                │        │ 0x8002_0000 │ .text   │
 └─────────────┴────────────────────┘        └─────────────┴─────────┘
 ```
+
+# Instructions for tester
+
+This section describes how you can test that the project works as intended.
+
+## Getting started
+
+Make sure that you can run the project as described in the [user guide](#user-guide)
+
+## Test 0
+
+### Summary
+
+| Test | Description | broken signature | valid signature |
+| ---- | ----------- | ----------- | ------------ |
+| 0 | Load app with a broken/valid signature. | Authentication failed -> app not loaded | Authentication success -> app loaded |
+
+### Guide 
+
+1.
+
+## Tests 1-4
+
+### Summary
+
+| Test | Description | SECURITY off | SECURITY on |
+| ---- | ----------- | ----------- | ------------ |
+| 1 | App attempts to write outside process memory. | Exception -> soft-reset | Exception -> soft-reset |
+| 2 | App attempts to execute outside process memory. | Exception -> soft-reset | Exception -> soft-reset |
+| 3 | App attempts to write to code. | No exception. No output. | Exception -> soft-reset |
+| 4 | App attempts to execute from data. | No exception. Output: "Executing from data!" | Exception -> soft-reset |
+
+### Guide
+
+1. Edit [config.h](./config.h)
+   * **comment** `#define TEST_MASK 0x0` and **uncomment** `#define TEST_MASK 0x01E`
+   * **comment** `#define SECURITY` is **uncommented** and 
+2. Check that `#define SIG_BROKEN` (this disables the security).
+3. Run the project `./run.sh` or `make run`. (This will detect the changes in `config.h` and recompile relevant parts)
+4. Switch to the main page and enter `c` in the GDB prompt to continue execution.
+5. In the output screen you should see `SECURITY off` and `TESTS: 0x1 0x2 0x3 0x4` according to <a href="#figure-1">figure 1</a>.
+
+> <img src="./img/test1-4-a.jpg" alt="figure 1">
+> <a id="figure-1"><i>Figure 1</i></a>
+
+6. Enter `c` twice. The output will now show that the app has run the first and second tests. Both tests resulted in a exception which the app could not resolve and was forced to soft-reset and move on to the next test.
+
+> In the first test the app attempt to write outside of process memory (see `eval`). Even though security is off the app is not allowed to write outside of its allocated memory. See yellow-highlighted parts in <a href="#figure-2">figure 2.</a>
+> <br><br>
+> In the second test the app attempt to execute from outside of process memory (see `eval` and `epc`). This is not allowed even if security is off similarly to the first test. See green-highlighted parts in <a href="#figure-2">figure 2.</a>
+> <br><br>
+> <img src="./img/test1-4-b.jpg" alt="figure 2">
+> <a id="figure-2"><i>Figure 2</i></a>
+
+7. Enter `c` twice followed by `ctrl+c`. The output will now show that the app has run the third and fourth tests.
+
+> In the third test the app attempted to write to an executable memory segment. No exception occurred because the app is given RWX permissions to its memory since security is off in the monitor. See yellow-highlighted parts in <a href="#figure-3">figure 3.</a> The address written to was `0x80021800` and it is within the `.text` section intended for code, see <a href="#memory-layout">memory layout</a>. Enter `x/4bx 0x80021800` to see what was written (restart the session with `ctrl+b (release) r` and inspect the memory before and after the third test).
+> <br><br>
+> In the fourth test the app attempted to execute from a data memory segment. No exception occurred due to the same reason described in the third test. The code which was executed printed "Executing from data!" which can be seen in the output. See green-highlighted parts in <a href="#figure-3">figure 3.</a>
+> <br><br>
+> <img src="./img/test1-4-c.jpg" alt="figure 3">
+> <a id="figure-3"><i>Figure 3</i></a>
+
+8. Exit the debugger with `ctrl+b (release) d`.
+9. Edit [config.h](./config.h)
+   * **uncomment** `#define SECURITY`
+10. Run the tests again. The first and second test will give the same result, but now the third and fourth test will both generate exceptions which the app cannot resolve which forces it to soft-reset.
+
+> When security is on in the monitor it enforces the write xor execute policy in the app's memory which now results in exceptions in the third and fourth test as expected. See yellow-highlighted parts for the third test's output and green-highlighted parts for the fourth test's output in <a href="#figure-4">figure 4.</a>
+> <br><br>
+> <img src="./img/test1-4-d.jpg" alt="figure 4">
+> <a id="figure-4"><i>Figure 4</i></a>
+
+## Tests 5-7
+
+### Summary
+
+| Test | Description | SECURITY off | SECURITY on |
+| ---- | ----------- | ----------- | ------------ |
+| 5 | App attempts to write data to heap. | No exception. No output | Exception -> memory set to RW |
+| 6 | App attempts to execute data written to heap. | No exception. Output: "Executing from NEW code!" | Exception -> successfully authenticated code. Output: "Executing from NEW code!" |
+| 7 | App attempts to execute new code with broken signature. | No exception. Output: "Executing from NEW code!" | Exception -> memory set to RW -> exception -> unsuccessfully authenticated code -> soft-reset |  
+
+### Guide
+
+1. 
+
+## Tests 8-9
+
+Tests 8 and 9 tests functionality which is not related to the core security concern of this project. 
