@@ -18,6 +18,7 @@ The project's goal is to implement security features into [kth-step/s3k](https:/
   - [Table of Contents](#table-of-contents)
 - [Documentation](#documentation)
   - [Overview](#overview)
+  - [Quick start](#quick-start)
   - [Repository layout](#repository-layout)
     - [Notable folders and files:](#notable-folders-and-files)
   - [Dependencies and compatibility](#dependencies-and-compatibility)
@@ -25,35 +26,34 @@ The project's goal is to implement security features into [kth-step/s3k](https:/
       - [Option 1](#option-1)
       - [Option 2](#option-2)
   - [Compiling and running](#compiling-and-running)
-    - [User guide](#user-guide)
-      - [GIF Demo](#gif-demo)
-      - [Instructions:](#instructions)
     - [Optional notes](#optional-notes)
       - [Build docker image locally](#build-docker-image-locally)
       - [Download docker image manually](#download-docker-image-manually)
       - [Change configuration for testing](#change-configuration-for-testing)
       - [Modify persistent GDB breakpoints](#modify-persistent-gdb-breakpoints)
+    - [User guide](#user-guide)
+      - [Demo](#demo)
+      - [Instructions](#instructions)
   - [Memory layout](#memory-layout)
 ---
 
 # Documentation
 
-
 ## Overview
 
-This repository consists of mainly two applications: *monitor* and *app*. The monitor is the core of this repository while the app is an application which will be used to test the functionality of the monitor. 
+This repository consists of mainly two applications: *monitor* and *app*. The monitor is the core of this project while the app is an application which will be used to test the functionality of the monitor. 
 
 >The purpose of the monitor is to be the first user-level process in the s3k kernel which will be responsible for *monitoring* all other user processes. The responsibilities of the monitor will be to authenticate the code of other processes, load the processes into memory, handling their capabilities to time and memory and handle certain exceptions.
 
 **For information about the monitor see [project-proposal.md](./project-proposal.md)**
 
+## Quick start
+
+If you are not interested in building the project from source, prebuilt releases are available on [Github](https://github.com/zynachs/s3k-monitor/releases). Instructions are provided in the release notes.
 
 ## Repository layout
 
 ### Notable folders and files:
-
-<details open>
-<summary>Dropdown tab</summary>
 
 | Folder/File | Description |
 | --- | --- |
@@ -75,7 +75,7 @@ This repository consists of mainly two applications: *monitor* and *app*. The mo
 | [monitor/codeauth.c](./monitor/codeauth.c) | Source file for signature functions. |
 | [monitor/monitor.c](./monitor/monitor.c) | Source file for monitor main code. |
 | [monitor/payload.S](./monitor/payload.S) | Source file for inserting app binary into monitor binary. |
-| [tools/](./tools/) | Contains tools used for various functionality in the repository. |
+| [tools/](./tools/) | Contains tools used for various functionality in the project. |
 | [tools/build/](./tools/build/) | Contains compiled files and debug information for tools. |
 | [tools/payloads/](./tools/payloads/) | Contains C source files used as payloads in app to test the monitors functionality. |
 | [tools/app_format_sig.c](./tools/app_format_sig.c) | Source file for generating signatures for binaries. |
@@ -86,15 +86,13 @@ This repository consists of mainly two applications: *monitor* and *app*. The mo
 | [tools/qemu.sh](./tools/qemu.sh) | Bash script which emulates the kernel, monitor and app with qemu and spawns a gdb live debugging prompt. Utilizes tmux.|
 | [tools/riscvpmp.py](./tools/riscvpmp.py) | Python script which translates a pmpaddr to start and end address. |
 | [tools/riscvpmpinv.py](./tools/riscvpmpinv.py) | Python script which translates a start and end address to a pmpaddr. |
-| [config.h](./config.h) | Header file used to configure settings in the repository. | 
-| [Dockerfile](./Dockerfile) | Dockerfile source which builds a build environment for the repository. A prebuilt image is provided on [Github](https://github.com/users/zynachs/packages/container/package/s3k-monitor-cc) | 
-| [Makefile](./Makefile) | Root Makefile used to compile and execute the entire repository |
+| [config.h](./config.h) | Header file used to configure settings in the project. | 
+| [Dockerfile](./Dockerfile) | Dockerfile source which builds a build environment for the project. A prebuilt image is provided on [Github](https://github.com/users/zynachs/packages/container/package/s3k-monitor-cc) | 
+| [Makefile](./Makefile) | Root Makefile used to compile and execute the entire project. |
 | [project-proposal.md](./project-proposal.md) | Original project proposal markdown source, 2023-03-02. |
 | [project-report.md](./project-report.md) | Final project report markdown source. |
 | [README.md](./README.md) | This document. |
-| [run.sh](./run.sh) | Quick-start script. Bash script which builds the repository within the docker build environment and runs it. |
-
-</details>
+| [run.sh](./run.sh) | Quick-start script. Bash script which builds the project within the docker build environment and runs it. |
 
 ## Dependencies and compatibility
 
@@ -102,47 +100,34 @@ This repository consists of mainly two applications: *monitor* and *app*. The mo
 
 ### Required software:
 
-<details open>
-<summary>Dropdown tab</summary>
-
 | Software | Version | Source | Note | 
 | --- | --- | --- | --- | 
 | git | N/A | https://git-scm.com/ | - | 
-| GNU Make | N/A | https://www.gnu.org/software/make/ | - |
-| GNU Compiler | N/A | https://gcc.gnu.org/ | Standard compiler for native target. |
-| Python 3 | N/A | https://www.python.org/ | - |
 | kth-step/s3k | commit: c0b7800 | https://github.com/kth-step/s3k/commit/c0b78005261f4725be71e103f70e61b0a8a2fee2 | Only tested and compatible with the specified commit of s3k. |
 
-</details>
-
-> To build, test and run the repository there are two options. Option 1 is the recommended solution since it is simpler and quicker to get started. 
+To build, test and run the project there are two options. Option 1 is the recommended solution since it is simpler and quicker to get started. 
 
 #### Option 1
 
-With option 1, the repository is built and run within a docker container and thus requires docker. A prebuilt image is provided on [Github](https://github.com/users/zynachs/packages/container/package/s3k-monitor-cc) and it includes all the tools used to build and run the repository. You can also build your own docker image with the provided [Dockerfile](./Dockerfile).
-
-<details open>
-<summary>Dropdown tab</summary>
+With option 1, the project is built and run within a docker container and thus requires docker. A prebuilt image is provided on [Github](https://github.com/users/zynachs/packages/container/package/s3k-monitor-cc) and it includes all the tools used to build and run the project. You can also build your own docker image with the provided [Dockerfile](./Dockerfile).
 
 | Software | Version | Source | Note | 
 | --- | --- | --- | --- | 
 | Docker | N/A | https://www.docker.com/ | - | 
 
-</details>
-
 #### Option 2
 
-With option 2, the repository is built and run with tools on your native system. The required tools are accessible through package managers but using them has resulted in bugs since they are outdated (according to the developers experience). Therefore we recommend building the tools from source with newer versions. The specified versions below have been used by the developers and are also used in the docker solution, see [Option 1](#option-1). Building these tools from source is a time consuming process and also error prone since the tools themselves have dependencies which if not present will omit functionality of the tools. 
-
-<details open>
-<summary>Dropdown tab</summary>
+With option 2, the project is built and run with tools on your native system. The required tools are accessible through package managers. 
 
 | Software | Version | Source | Note | 
 | --- | --- | --- | --- | 
-| RISC-V GNU Compiler Toolchain | tag: 2023.02.21 | https://github.com/riscv-collab/riscv-gnu-toolchain/releases/tag/2023.02.21 | Only tested the specified version and compiled from source. Version in package manager might be outdated. |
-| QEMU | Release: 7.2.0 | https://github.com/qemu/qemu/releases/tag/v7.2.0 | Only tested the specified version and compiled from source. Version in package manager might be outdated. |
+| GNU Make | N/A | https://www.gnu.org/software/make/ | - |
+| GNU Compiler | N/A | https://gcc.gnu.org/ | Standard compiler for native target. |
+| Python 3 | N/A | https://www.python.org/ | - |
+| RISC-V GNU Compiler Toolchain **\*** | tag: 2023.02.21 | https://github.com/riscv-collab/riscv-gnu-toolchain/releases/tag/2023.02.21 | Only tested the specified version and compiled from source. Version in package manager might be outdated. |
+| QEMU **\*** | Release: 7.2.0 | https://github.com/qemu/qemu/releases/tag/v7.2.0 | Only tested the specified version and compiled from source. Version in package manager might be outdated. |
 
-</details>
+> **\*** **WARNING:** Usage of the package manager versions of *RISC-V GNU Compiler Toolchain* and *QEMU* has resulted in bugs since they are outdated (according to the developers experience). Therefore we recommend building these tools from source with newer versions. The specified versions below have been used by the developers and are also used in the docker solution, see [Option 1](#option-1). Building these tools from source is a time consuming process and also error prone since the tools themselves have dependencies which if not present will omit functionality of the tools. 
 
 ## Compiling and running
 
@@ -200,24 +185,6 @@ apt update && apt install -y git make build-essential python3
 > make run
 > ```
 
-### User guide
-
-The project is emulated on qemu and interacted with over a live GDB session. This is all wrapped up inside a tmux session which is created by the script [qemu.sh](./tools/qemu.sh). 
-
-#### GIF Demo
-
-![user-guide](./img/user-guide.gif)
-
-#### Instructions:
-* When the project is run it will spawn a tmux session in the current terminal.
-* The first page is a help page with some useful information.
-* Switch to the main page with `ctrl+b (release) n`. use the same keystroke to switch to the help page.
-* Left panel is GDB in tui mode.
-* Right panel is output from kernel, monitor and app.
-* Restart session with `ctrl+b (release) r`
-* Exit session with `ctrl+b (release) d`
-* `ctrl+c` will not exit tmux, it will interact as expected within the current application.
-
 ### Optional notes
 
 #### Build docker image locally
@@ -227,7 +194,7 @@ The project is emulated on qemu and interacted with over a live GDB session. Thi
  
 ```shell
 cd /path/to/s3k-monitor
-docker build -t s3k-monitor-cc:local .sdfsdf
+docker build -t s3k-monitor-cc:local .
 ```
 
 #### Download docker image manually
@@ -242,6 +209,25 @@ To change testing parameters of the project edit [config.h](./config.h). Instruc
 
 #### Modify persistent GDB breakpoints
 Initial breakpoints are set in [tools/breakpoints.txt](./tools/breakpoints.txt). Write one breakpoint per line and ONLY the value of the breakpoint: i.e. `app.c:loop` or `*0x80020000`, **NOT** `break app.c:loop` or `break *0x80020000`.
+
+### User guide
+
+The project is emulated on qemu and interacted with over a live GDB session. This is all wrapped up inside a tmux session which is created by the script [qemu.sh](./tools/qemu.sh). 
+
+#### Demo
+
+![user-guide](./img/user-guide.gif)
+
+#### Instructions
+
+* When the project is run it will spawn a tmux session in the current terminal.
+* The first page is a help page with some useful information.
+* Switch to the main page with `ctrl+b (release) n`. use the same keystroke to switch to the help page.
+* The left panel contains GDB in tui mode.
+* The right panel displays output from kernel, monitor and app.
+* Restart the session with `ctrl+b (release) r`.
+* Exit session with `ctrl+b (release) d`.
+* **Note:** `ctrl+c` will not exit tmux, it will interact with the application in the current pane/window as expected.
 
 ## Memory layout
 
