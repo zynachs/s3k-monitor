@@ -7,9 +7,9 @@ Date: 2023-03-02
 
 **Author:** Zacharias Terdin [(zacte@kth.se)](mailto:zacte@kth.se)  
 **Supervisor:** Henrik Karlsson [(henrik10@kth.se)](mailto:henrik10@kth.se)  
-**Examinator:** Roberto Guanciale [(robertog@kth.se)](mailto:robertog@kth.se)
+**Examiner:** Roberto Guanciale [(robertog@kth.se)](mailto:robertog@kth.se)
 
-# Background
+## Background
 
 Modern software systems are filled with bugs and security flaws since they are a complex combination of many components where performance is often the focus and security is an afterthought [[1]](#references). The most privileged software, the operating system, can enforce security and hopefully prevent vulnerabilities in application and user software from resulting in a system wide compromise. This presumes that the OS itself is free from bugs which can be proven through formal methods. _S3k_ (Simple Secure Separation Kernel [[2]](#references)) is one such project which aims to design and implement a bug-free kernel through formal methods.
 
@@ -21,14 +21,14 @@ S3k is a separation kernel designed for standard RISC-V 64 bit (RV64IMA) with MP
 
 Almost all software contains bugs and one of the most, if not the most, common type of software bug withing computer security is related to memory vulnerabilities [[4]](#references). Memory corruption, code corruption, control-flow hijacking are examples of attack which would allow an attacker to influence a system partially or completely. Fortunately, there exists protective mechanisms to counter these well-known attacks.
 
-# Problem formulation
+## Problem formulation
 
 This project will be covering the prevention of code injection and execution of arbitrary code on s3k. The problem to be solved consists of two parts, a malicious actor can write and execute arbitrary code if:
 
 1. a program can write and execute code from the memory intended for program data.
 2. a program can write code into the section of memory intended for instructions, i.e., the program can rewrite its own code.
 
-# Solution
+## Solution
 
 This project aims to solve the problem by implementing the *code integrity policy* and *non-executable data policy*.
 
@@ -36,7 +36,7 @@ Code integrity enforces that program code cannot be writable, only readable and 
 
 The implementation of the code integrity policy will not be as strict as described in the previous paragraph. Software updates is a legitimate reason to rewrite a programs code. This action will be allowed after a method of authentication. The authentication will check that the code comes from a trusted source and that it has not been tampered with.
 
-# Intended implementation (High-level overview)
+## Intended implementation (High-level overview)
 
 The write xor execute policy will be enforced by a monitor process. It will be the initial user process which owns all capabilities to all user resources. All subsequent user processes that are spawned will be given capabilities to memory ranges and time by the monitor. Memory ranges for code will only be readable and executable and memory ranges for data will only be readable and writable. The capabilities will be implemented with RISC-V PMP.
 
@@ -44,7 +44,7 @@ The monitor will handle request to alter memory capabilities: acquire new capabi
 
 The monitor will also be responsible for authenticating all code that it will be giving capabilities to. Code authentication will be implemented through code signatures and encryption with symmetric keys. __This is considered an optional task.__
 
-# Tasks
+## Tasks
 
 The tasks are categorized as main tasks and sub tasks. The order of the tasks is the preferred order of completion. Multiple sub tasks from different main tasks can be worked on in parallel since they are not necessarily a prerequisite to each other. This list should be considered dynamic, since it most probably will be modified during the course of the project.
 
@@ -99,18 +99,18 @@ The tasks are categorized as main tasks and sub tasks. The order of the tasks is
 
     b. Write documentation for the project the monitor process.
 
-# Scope and presumptions
+## Scope and presumptions
 
 **Detection of code injection is beyond the scope of this project**. Malicious code can be written to the writable section of memory intended for data, either by intentional input methods or malicious activity, e.g. buffer overflow attack. This project will not *detect* this data integrity violation, but it will *prevent* the code from ever being executed.
 
 **Countermeasures against code-reuse attacks is beyond the scope of this project.** Code-reuse attacks are a method which can sidestep the protection provided by the write xor execute policy. ROP (return oriented programming) is one example of a code-reuse attack. It utilizes already existing code snippets loaded into memory from shared libraries and the modification of return pointers to hijack the control flow of a program and chain together code to achieve arbitrary code execution. This is possible since the accumulated code within standard libraries Turing complete [[4]](#references).
 
-# References
+## References
 
 | Index | Reference |
 | --- | --- |
-| [1] | KTH-STEP Group, "Separation Kernel," n.d. [Online]. Available: https://kth-step.github.io/projects/separation-kernel/. [Accessed 28 February 2023]. |
-| [2] | KTH-STEP Group, "s3k," 2023. [Online]. Available: https://github.com/kth-step/s3k. [Accessed 28 February 2023]. |
-| [3] | H. Karlsson, "Provable Security," 27 October 2022. [Online]. Available: https://kth-step.github.io/assets/projects/separation-kernel/2022-10-27-cdis-retreat.pdf. [Accessed 28 February 2023]. |
+| [1] | KTH-STEP Group, "Separation Kernel," n.d. [Online]. Available: <a href="https://kth-step.github.io/projects/separation-kernel/">https://kth-step.github.io/projects/separation-kernel/</a>. [Accessed 28 February 2023]. |
+| [2] | KTH-STEP Group, "s3k," 2023. [Online]. Available: <a href="https://github.com/kth-step/s3k">https://github.com/kth-step/s3k</a>. [Accessed 28 February 2023]. |
+| [3] | H. Karlsson, "Provable Security," 27 October 2022. [Online]. Available: <a href="https://kth-step.github.io/assets/projects/separation-kernel/2022-10-27-cdis-retreat.pdf">https://kth-step.github.io/assets/projects/separation-kernel/2022-10-27-cdis-retreat.pdf</a>. [Accessed 28 February 2023]. |
 | [4] | L. Szekeres, M. Payer, T. Wei and D. Song, "SoK: Eternal War in Memory," 2013 IEEE Symposium on Security and Privacy, Berkeley, CA, USA, 2013. |
 | [5] | H. Chfouka, H. Nemati, R. Guanciale, M. Dam and P. Ekdahl, "Trustworthy Prevention of Code Injection in Linux on Embedded Devices," in _Computer Security -- ESORICS 2015_, G. Pernul, P. Y. A. Ryan and E. Weippl, Eds., Cham, Springer International Publishing, 2015, pp. 90-107. |
