@@ -47,6 +47,7 @@ The project's goal is to implement security features into [kth-step/s3k](https:/
     - [Summary](#summary-2)
     - [Guide](#guide-2)
   - [Tests 8-9](#tests-8-9)
+    - [Summary](#summary-3)
 ---
 
 # Documentation
@@ -279,17 +280,65 @@ Make sure that you can run the project as described in the [user guide](#user-gu
 
 ## Test 0
 
+Test 0 tests that the code authentication process is working.
+
 ### Summary
 
-| Test | Description | broken signature | valid signature |
-| ---- | ----------- | ----------- | ------------ |
-| 0 | Load app with a broken/valid signature. | Authentication failed -> app not loaded | Authentication success -> app loaded |
+| Test | Description | SECURITY off & SIG_BROKEN off | SECURITY off & SIG_BROKEN on | SECURITY on & SIG_BROKEN off | SECURITY on & SIG_BROKEN on |
+| ---- | ----------- | ----------- | ------------ | --- | --- |
+| 0 | Load app with a broken/valid signature. | App loaded | App loaded | Authentication success -> app loaded | Authentication failed -> app not loaded |
 
 ### Guide 
 
-1.
+1. Edit [config.h](./config.h)
+   * **comment** `#define SIG_BROKEN`
+   * **comment** `#define SECURITY`
+2. Run the project.
+3. Switch to the main page in the tmux session.
+4. Enter `c` to continue execution followed by `ctrl+c` to halt execution.
+5. In the output pane you should see `SECURITY off` and the app should have finished execution.
+
+> Security is off, which means that even if the app has a broken signature it would still load. In this case the app has a valid signature but the monitor did not check it. See <a href="#figure-1">figure 1</a>.
+> <br><br>
+> <img src="./img/test0-a.jpg" alt="figure 1">
+> <a id="figure-1"><i>Figure 1</i></a>
+
+6. Exit the tmux session with `ctrl+b (release) d`.
+7. Edit [config.h](./config.h)
+   * **uncomment** `#define SIG_BROKEN`
+   * **comment** `#define SECURITY`
+8. Run the project and switch to the main page. Enter `c` followed by `ctrl+c`.
+9. The output pane should look identical to the previous run.
+  
+> Since security is off, even though the signature is broken the monitor still loads the app.
+
+10. Exit the tmux session with `ctrl+b (release) d`.
+11. Edit [config.h](./config.h)
+    * **comment** `#define SIG_BROKEN`
+    * **uncomment** `#define SECURITY`
+12. Run the project and switch to the main page. Enter `c` followed by `ctrl+c`.
+13. The output pane should now show `SECURITY on` and `verifying app... SUCCESS!`.
+
+> Security is now turned on and the signature is valid. The monitor loads the app and it is allowed to execute. See <a href="#figure-2">figure 2</a>.
+> <br><br>
+> <img src="./img/test0-b.jpg" alt="figure 2">
+> <a id="figure-2"><i>Figure 2</i></a>
+
+14. Exit the tmux session with `ctrl+b (release) d`.
+15. Edit [config.h](./config.h)
+    * **uncomment** `#define SIG_BROKEN`
+    * **uncomment** `#define SECURITY`
+16. Run the project and switch to the main page. Enter `c` followed by `ctrl+c`.
+17. The output pane should now show `SECURITY on` and `verifying app... FAIL!`.
+
+> Now the signature is broken which results in the app never being allowed to load and execute. See <a href="#figure-3">figure 3</a>.
+> <br><br>
+> <img src="./img/test0-c.jpg" alt="figure 3">
+> <a id="figure-3"><i>Figure 3</i></a>
 
 ## Tests 1-4
+
+Tests 1-4 check that the write xor execute policy is working as intended.
 
 ### Summary
 
@@ -303,45 +352,48 @@ Make sure that you can run the project as described in the [user guide](#user-gu
 ### Guide
 
 1. Edit [config.h](./config.h)
-   * **comment** `#define TEST_MASK 0x0` and **uncomment** `#define TEST_MASK 0x01E`
-   * **comment** `#define SECURITY` is **uncommented** and 
-2. Check that `#define SIG_BROKEN` (this disables the security).
-3. Run the project `./run.sh` or `make run`. (This will detect the changes in `config.h` and recompile relevant parts)
-4. Switch to the main page and enter `c` in the GDB prompt to continue execution.
-5. In the output screen you should see `SECURITY off` and `TESTS: 0x1 0x2 0x3 0x4` according to <a href="#figure-1">figure 1</a>.
+   * **comment** `#define TEST_MASK 0x0`
+   * **uncomment** `#define TEST_MASK 0x1E`
+   * **comment** `#define SECURITY`
+   * **comment** `#define SIG_BROKEN`
+2. Run the project.
+3. Switch to the main page and enter `c` in the GDB prompt to continue execution.
+4. In the output pane you should see `SECURITY off` and `TESTS: 0x1 0x2 0x3 0x4` according to <a href="#figure-4">figure 4</a>.
 
-> <img src="./img/test1-4-a.jpg" alt="figure 1">
-> <a id="figure-1"><i>Figure 1</i></a>
+> <img src="./img/test1-4-a.jpg" alt="figure 4">
+> <a id="figure-4"><i>Figure 4</i></a>
 
 6. Enter `c` twice. The output will now show that the app has run the first and second tests. Both tests resulted in a exception which the app could not resolve and was forced to soft-reset and move on to the next test.
 
-> In the first test the app attempt to write outside of process memory (see `eval`). Even though security is off the app is not allowed to write outside of its allocated memory. See yellow-highlighted parts in <a href="#figure-2">figure 2.</a>
+> In the first test the app attempt to write outside of process memory (see `eval`). Even though security is off the app is not allowed to write outside of its allocated memory. See yellow-highlighted parts in <a href="#figure-5">figure 5.</a>
 > <br><br>
-> In the second test the app attempt to execute from outside of process memory (see `eval` and `epc`). This is not allowed even if security is off similarly to the first test. See green-highlighted parts in <a href="#figure-2">figure 2.</a>
+> In the second test the app attempt to execute from outside of process memory (see `eval` and `epc`). This is not allowed even if security is off similarly to the first test. See green-highlighted parts in <a href="#figure-5">figure 5.</a>
 > <br><br>
-> <img src="./img/test1-4-b.jpg" alt="figure 2">
-> <a id="figure-2"><i>Figure 2</i></a>
+> <img src="./img/test1-4-b.jpg" alt="figure 5">
+> <a id="figure-5"><i>Figure 5</i></a>
 
 7. Enter `c` twice followed by `ctrl+c`. The output will now show that the app has run the third and fourth tests.
 
-> In the third test the app attempted to write to an executable memory segment. No exception occurred because the app is given RWX permissions to its memory since security is off in the monitor. See yellow-highlighted parts in <a href="#figure-3">figure 3.</a> The address written to was `0x80021800` and it is within the `.text` section intended for code, see <a href="#memory-layout">memory layout</a>. Enter `x/4bx 0x80021800` to see what was written (restart the session with `ctrl+b (release) r` and inspect the memory before and after the third test).
+> In the third test the app attempted to write to an executable memory segment. No exception occurred because the app is given RWX permissions to its memory since security is off in the monitor. See yellow-highlighted parts in <a href="#figure-6">figure 6.</a> The address written to was `0x80021800` and it is within the `.text` section intended for code, see <a href="#memory-layout">memory layout</a>. Enter `x/4bx 0x80021800` to see what was written (restart the session with `ctrl+b (release) r` and inspect the memory before and after the third test).
 > <br><br>
-> In the fourth test the app attempted to execute from a data memory segment. No exception occurred due to the same reason described in the third test. The code which was executed printed "Executing from data!" which can be seen in the output. See green-highlighted parts in <a href="#figure-3">figure 3.</a>
+> In the fourth test the app attempted to execute from a data memory segment. No exception occurred due to the same reason described in the third test. The code which was executed printed "Executing from data!" which can be seen in the output. See green-highlighted parts in <a href="#figure-6">figure 6.</a>
 > <br><br>
-> <img src="./img/test1-4-c.jpg" alt="figure 3">
-> <a id="figure-3"><i>Figure 3</i></a>
+> <img src="./img/test1-4-c.jpg" alt="figure 6">
+> <a id="figure-6"><i>Figure 6</i></a>
 
-8. Exit the debugger with `ctrl+b (release) d`.
+8. Exit the tmux session with `ctrl+b (release) d`.
 9. Edit [config.h](./config.h)
    * **uncomment** `#define SECURITY`
 10. Run the tests again. The first and second test will give the same result, but now the third and fourth test will both generate exceptions which the app cannot resolve which forces it to soft-reset.
 
-> When security is on in the monitor it enforces the write xor execute policy in the app's memory which now results in exceptions in the third and fourth test as expected. See yellow-highlighted parts for the third test's output and green-highlighted parts for the fourth test's output in <a href="#figure-4">figure 4.</a>
+> When security is on in the monitor it enforces the write xor execute policy in the app's memory which now results in exceptions in the third and fourth test as expected. See yellow-highlighted parts for the third test's output and green-highlighted parts for the fourth test's output in <a href="#figure-7">figure 7.</a>
 > <br><br>
-> <img src="./img/test1-4-d.jpg" alt="figure 4">
-> <a id="figure-4"><i>Figure 4</i></a>
+> <img src="./img/test1-4-d.jpg" alt="figure 7">
+> <a id="figure-7"><i>Figure 7</i></a>
 
 ## Tests 5-7
+
+Tests 5-7 tests dynamic memory allocations in the heap and switching between W and X permissions. In all of these tests capabilities to memory have to be modified which entails that the app has to send requests to the monitor.
 
 ### Summary
 
@@ -353,8 +405,71 @@ Make sure that you can run the project as described in the [user guide](#user-gu
 
 ### Guide
 
-1. 
+1. Edit [config.h](./config.h)
+   * **comment** `#define SIG_BROKEN`
+   * **comment** `#define TEST_MASK 0x0`
+   * **uncomment** `#define TEST_MASK 0xE0`
+   * **comment** `#define SECURITY`
+2. Run the project.
+3. Switch to the main page and enter `c` in the GDB prompt to continue execution.
+4. In the output pane you should see `SECURITY off` and `TESTS: 0x5 0x6 0x7` according to <a href="#figure-8">figure 8</a>.
+
+> <img src="./img/test5-7-a.jpg" alt="figure 8">
+> <a id="figure-8"><i>Figure 8</i></a>
+
+5. Enter `c` to continue executing test 5.
+
+> In test 5 the app attempts to write data into an allocated memory in the heap. Since security is off, the whole heap is set to RWX and no exception occurs.
+
+6. Enter `c` to continue executing test 6.
+
+> In test 6 the app attempts to execute code with a valid signature written to the heap. In the output you should see `Executing from NEW code!` which is the output from the code that was ran. Since security is off, the whole heap is set to RWX and no exception occurs. See <a href="#figure-9">figure 9</a>.
+> <br><br>
+> <img src="./img/test5-7-b.jpg" alt="figure 9">
+> <a id="figure-9"><i>Figure 9</i></a>
+
+7. Enter `c` to continue executing test 7 followed by `ctrl+c`.
+
+> In test 7 the app attempts to write code in the heap and execute it, but this time with a broken signature. Since security is off the code will be written and executed and give an identical output as test 6.
+
+8. Exit the tmux session with `ctrl+b (release) d`.
+9. Edit [config.h](./config.h):
+   * **uncomment** `#define SECURITY`
+10. Run the project.
+11. Switch to the main page and enter `c` to continue execution.
+12. In the output pane you should see `SECURITY on` according to <a href="#figure-10">figure 10</a>.
+
+> <img src="./img/test5-7-c.jpg" alt="figure 10">
+> <a id="figure-10"><i>Figure 10</i></a>
+
+13. Enter `c` to continue executing test 5.
+
+> Since security has been turned on the heap is initially set to R. This causes an exception when the app attempts to write to the heap. The app wants to resolve this by modifying its permissions to RW and requests this to the monitor. The monitor accepts the request and performs the modification. See <a href="#figure-11">figure 11</a>.
+> <br><br>
+> <img src="./img/test5-7-d.jpg" alt="figure 11">
+> <a id="figure-11"><i>Figure 11</i></a>
+
+14. Enter `c` to continue executing test 6.
+
+> In test 6 the app attempts to execute the data it wrote to the heap in test 5 as code. Now when security is on and the permissions to the heap currently are RW, it will cause an exception. The app wants to resolve this by modifying its permissions to RX and requests this to the monitor. Since the app wants to create a executable memory region the monitor will authenticate the code first before changing the permissions. The authentication was successfull and the monitor proceeded with performing the modification. See <a href="#figure-12">figure 12</a>.
+> <br><br>
+> <img src="./img/test5-7-e.jpg" alt="figure 12">
+> <a id="figure-12"><i>Figure 12</i></a>
+
+15. Enter `c` to continue executing test 7 followed by `ctrl+c`.
+
+> In test 7 the app performs the same actions as in test 5 and 6 combined, but this time the written code has a broken signature. The first exception results in the monitor accepting that the permissions are changed from R to RW. The second exception results in the monitor denying that the permissions are changed from RW to RX since the signature is broken. See <a href="#figure-13">figure 13</a>.
+> <br><br>
+> <img src="./img/test5-7-f.jpg" alt="figure 13">
+> <a id="figure-13"><i>Figure 13</i></a>
 
 ## Tests 8-9
 
-Tests 8 and 9 tests functionality which is not related to the core security concern of this project. 
+Tests 8 and 9 tests functionality which is not related to the core security concern of this project and will not be described in detail.
+
+### Summary
+
+| Test | Description | SECURITY off | SECURITY on |
+| ---- | ----------- | ----------- | ------------ |
+| 8 | App attempts to write to rodata. | No exception. No output | Exception -> soft-reset |
+| 9 | App reaches stack size limit. | No exception. No output | Exception -> stack expanded | 
